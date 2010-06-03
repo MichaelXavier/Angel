@@ -2,7 +2,7 @@
  * Break up giant monads
  * Document
  * Test/make robust parsing code
- * Make prints nicer
+ * Make prints nicer (printf-ish?  log module?)
  * Prevent config break from killing server
  * Rename
  * Pretty print program data
