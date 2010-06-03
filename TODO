@@ -1,0 +1,8 @@
+ * Clean up module layout
+ * Break up giant monads
+ * Document
+ * Test/make robust parsing code
+ * Make prints nicer
+ * Prevent config break from killing server
+ * Rename
+ * Pretty print program data
