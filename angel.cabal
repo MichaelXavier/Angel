@@ -60,6 +60,9 @@ Executable angel
   Build-depends: stm >= 2.0
   Build-depends: containers >= 0.3
   Build-depends: unix >= 2.4
+  Build-depends: old-time
+  Build-depends: old-locale
+  Build-depends: pretty
 
   
   -- Modules not exported by this package.
