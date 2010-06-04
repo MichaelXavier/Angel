@@ -7,11 +7,13 @@ import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Control.Monad (unless, when, forever)
 import System.Environment (getArgs)
 import System.Posix.Signals
+import System.IO (hSetBuffering, BufferMode(..), stdout, stderr)
+
 import qualified Data.Map as M
 
 import Angel.Log (logger)
 import Angel.Config (monitorConfig)
-import Angel.Data
+import Angel.Data (GroupConfig(..))
 import Angel.Job (pollStale)
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
@@ -19,7 +21,9 @@ import Angel.Job (pollStale)
 handleHup :: TVar (Maybe Int) -> IO ()
 handleHup wakeSig = atomically $ writeTVar wakeSig $ Just 1
 
-main = do let log = logger "main" 
+main = do hSetBuffering stdout LineBuffering
+          hSetBuffering stderr LineBuffering
+          let log = logger "main" 
           log "Angel started"
           args <- getArgs
 
