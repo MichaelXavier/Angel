@@ -15,47 +15,35 @@ import Angel.Log (logger)
 import Angel.Data
 import Angel.Util (sleepSecs)
 
+-- |launch the program specified by `id`, opening (and closing) the
+-- |appropriate fds for logging.  When the process dies, either b/c it was
+-- |killed by a monitor, killed by a system user, or ended execution naturally,
+-- |re-examine the desired run config to determine whether to re-run it.  if so,
+-- |tail call.
 supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " -"
                                     log "START"
                                     cfg <- atomically $ readTVar sharedGroupConfig
-                                    let my_spec = M.findWithDefault defaultProgram id (spec cfg)
+                                    let my_spec = find_me cfg
                                     case name my_spec of
                                          "" -> log "QUIT (missing from config on restart)"
                                          otherwise ->  do
-                                                            attachOut <- case stdout my_spec of
-                                                                              ""    -> return Inherit
-                                                                              other -> UseHandle `fmap` openFile other AppendMode 
-                                                            attachErr <- case stderr my_spec of
-                                                                              ""    -> return Inherit
-                                                                              other -> if other == stdout my_spec 
-                                                                                       then return attachOut
-                                                                                       else UseHandle `fmap` openFile other AppendMode 
-  
+                                                            (attachOut, attachErr) <- makeFiles my_spec
+
                                                             let (cmd, args) = cmdSplit $ exec my_spec
+
                                                             (_, _, _, p) <- createProcess (proc cmd args){
                                                                   std_out = attachOut,
                                                                   std_err = attachOut
                                                                   }
-                                                            atomically $ do wcfg <- readTVar sharedGroupConfig
-                                                                            writeTVar sharedGroupConfig wcfg{
-                                                               running=M.insertWith' updateRunning id (my_spec, Just p) (running wcfg)
-                                                                            }
+
+                                                            updateRunningPid my_spec (Just p)
                                                             log "RUNNING"
                                                             waitForProcess p
                                                             log "ENDED"
+                                                            updateRunningPid my_spec (Nothing)
   
-                                                            -- close processes we made
-                                                            case attachOut of 
-                                                                UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
-                                                                otherwise -> return ()
-                                                            case attachErr of 
-                                                                UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
-                                                                otherwise -> return ()
-  
-                                                            atomically $ do lcfg <- readTVar sharedGroupConfig
-                                                                            writeTVar sharedGroupConfig lcfg{
-                                                               running=M.insertWith' updateRunning id (my_spec, Nothing) (running lcfg)
-                                                                            }
+                                                            -- close files we opened
+                                                            mapM_ closeIfNecessary [attachOut, attachErr]
   
                                                             cfg <- atomically $ readTVar sharedGroupConfig
                                                             if M.notMember id (spec cfg) 
@@ -66,9 +54,29 @@ supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " 
                                                                         log  "RESTART"
                                                                         supervise sharedGroupConfig id
     where
-        updateRunning new old = new
         cmdSplit fullcmd = (head parts, tail parts) 
             where parts = (filter (/="") . map strip . split " ") fullcmd
+
+        find_me cfg = M.findWithDefault defaultProgram id (spec cfg)
+        updateRunningPid my_spec mpid = atomically $ do wcfg <- readTVar sharedGroupConfig
+                                                        writeTVar sharedGroupConfig wcfg{
+                                                  running=M.insertWith' (\n o-> n) id (my_spec, mpid) (running wcfg)
+                                                        }
+        makeFiles my_spec = do  attachOut <- case stdout my_spec of
+                                  ""    -> return Inherit
+                                  other -> UseHandle `fmap` openFile other AppendMode 
+
+                                attachErr <- case stderr my_spec of
+                                  ""    -> return Inherit
+                                  other -> if other == stdout my_spec 
+                                           then return attachOut
+                                           else UseHandle `fmap` openFile other AppendMode 
+                                return $ (attachOut, attachErr)
+
+        closeIfNecessary hspec = case hspec of 
+                                    UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
+                                    otherwise -> return ()
+
 
 -- |send a TERM signal to all provided process handles
 killProcesses :: [ProcessHandle] -> IO ()
