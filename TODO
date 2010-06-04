@@ -1,4 +1,3 @@
- * Clean up module layout
  * Break up giant monads
  * Document
  * Test/make robust parsing code
