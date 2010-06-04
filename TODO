@@ -1,3 +1,2 @@
- * Break up giant monads
- * Document
- * Test/make robust parsing code
+ * "Real" args-parsing/splitting to support quotes, etc (use some lib?)
+ * ghc 6.10 support? (patches welcome)
