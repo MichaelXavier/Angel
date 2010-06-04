@@ -24,7 +24,7 @@ main = do let log = logger "main"
           args <- getArgs
 
           -- Exactly one argument required for the `angel` executable
-          unless (length args == 1) $ error "failsafe takes exactly one argument: config file"
+          unless (length args == 1) $ error "exactly one argument required: config file"
           let configPath = head args
           log $ "Using config file: " ++ configPath
 
