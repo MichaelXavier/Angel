@@ -2,5 +2,3 @@
  * Break up giant monads
  * Document
  * Test/make robust parsing code
- * Make prints nicer (printf-ish?  log module?)
- * Pretty print program data
