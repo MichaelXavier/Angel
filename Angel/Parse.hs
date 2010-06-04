@@ -45,7 +45,7 @@ commentLine = do manyTill (oneOf " \t") $ char '#'
 emptyLine :: GenParser Char st Kw
 emptyLine = manyTill (oneOf " \t\r") (char '\n') >> return Nothing
 
-header = do manyTill anyChar $ char '['
+header = do char '[' <?> "start program id"
             name <- manyTill anyChar $ char ']'
             manyTill (oneOf " \t\r") $ char '\n'
             return name
@@ -73,7 +73,8 @@ program = do given_id <- header
                             else return ()
 
 configFile :: GenParser Char st Spec
-configFile = manyTill program eof
+configFile = do many $ (emptyLine <|> commentLine)
+                return =<< manyTill program eof
 
 parseConfig :: String -> Either ParseError Spec
 parseConfig input = parse configFile "(config)" input
