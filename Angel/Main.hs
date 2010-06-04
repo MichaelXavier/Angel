@@ -80,7 +80,7 @@ babysit sharedGroupConfig id = do print "called!"
     where
         updateRunning new old = new
         cmdSplit fullcmd = (head parts, tail parts) 
-            where parts = split " " fullcmd
+            where parts = (filter (/="") . map strip . split " ") fullcmd
 
 sleepSecs s = threadDelay $ s * 1000000
 

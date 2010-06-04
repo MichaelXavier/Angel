@@ -1,5 +1,6 @@
 module Angel.Parse where
 
+import Data.String.Utils (strip)
 import Text.ParserCombinators.Parsec
 import Data.Maybe (isJust)
 import Data.Either (Either(..))
@@ -35,7 +36,7 @@ configLine = do name <- manyTill (noneOf "[") (char ' ')
                         "stdout" -> configString
                         "stderr" -> configString
                         otherwise -> fail $ "unknown config verb '" ++ name ++ "'"
-                return $ Just (name, val)
+                return $ Just (strip name, strip val)
 
 commentLine :: GenParser Char st Kw
 commentLine = do manyTill (oneOf " \t") $ char '#'
