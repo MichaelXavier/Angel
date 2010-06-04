@@ -6,24 +6,8 @@ import Data.Maybe (isJust)
 import Data.Either (Either(..))
 import Control.Monad (foldM)
 
-data Program = Program {
-    name :: String,
-    exec :: String,
-    delay :: Int,
-    stdout :: String,
-    stderr :: String
-} deriving (Show, Eq, Ord)
+import Angel.Data
 
-type Spec = [Program]
-type Kw = Maybe (String, String)
-
-defaultProgram = Program{
-    name="",
-    exec="",
-    delay=5,
-    stdout="/dev/null",
-    stderr="/dev/null"
-}
 
 reqInt = manyTill (oneOf ['0'..'9']) (char '\n') <?> "integer"
 configString = manyTill anyChar $ char '\n'
