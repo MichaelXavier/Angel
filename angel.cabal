@@ -62,7 +62,6 @@ Executable angel
   Build-depends: unix >= 2.4
   Build-depends: old-time
   Build-depends: old-locale
-  Build-depends: pretty
 
   
   -- Modules not exported by this package.
