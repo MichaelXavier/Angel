@@ -33,7 +33,7 @@ supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " 
 
                                                             (_, _, _, p) <- createProcess (proc cmd args){
                                                                   std_out = attachOut,
-                                                                  std_err = attachOut
+                                                                  std_err = attachErr
                                                                   }
 
                                                             updateRunningPid my_spec (Just p)
