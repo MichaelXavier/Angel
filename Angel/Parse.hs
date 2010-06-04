@@ -1,3 +1,4 @@
+-- |Parse Angel configuration files--a parsec parser
 module Angel.Parse where
 
 import Data.String.Utils (strip)
@@ -8,6 +9,7 @@ import Control.Monad (foldM)
 
 import Angel.Data
 
+type Kw = Maybe (String, String)
 
 reqInt = manyTill (oneOf ['0'..'9']) (char '\n') <?> "integer"
 configString = manyTill anyChar $ char '\n'
