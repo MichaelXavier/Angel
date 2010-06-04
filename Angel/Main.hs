@@ -90,9 +90,9 @@ displayConfig cfg = putStrLn $ show cfg
 processConfig configPath = do c <- readFile configPath
                               let cfg = parseConfig c
                               case cfg of
-                                  Left e -> error $ show e
+                                  Left e -> return $ Left e
                                   Right cfg -> do displayConfig cfg 
-                                                  return $ buildConfigMap cfg
+                                                  return $ Right $ buildConfigMap cfg
 
 updateSpecConfig sharedGroupConfig spec = do cfg <- readTVar sharedGroupConfig
                                              writeTVar sharedGroupConfig cfg{spec=spec}
@@ -129,9 +129,12 @@ syncSupervisors sharedGroupConfig = do cfg <- atomically $ readTVar sharedGroupC
 
 pollStale sharedGroupConfig = forever $ sleepSecs 10 >> syncSupervisors sharedGroupConfig
 
-monitorConfig configPath sharedGroupConfig wakeSig = do spec <- processConfig configPath
-                                                        atomically $ updateSpecConfig sharedGroupConfig spec
-                                                        syncSupervisors sharedGroupConfig
+monitorConfig configPath sharedGroupConfig wakeSig = do mspec <- processConfig configPath
+                                                        case mspec of 
+                                                            Left e     -> do putStrLn $ show e
+                                                                             putStrLn "skipping reload (sent HUP when fixed)"
+                                                            Right spec -> do atomically $ updateSpecConfig sharedGroupConfig spec
+                                                                             syncSupervisors sharedGroupConfig
                                                         waitForWake wakeSig
                                                         putStrLn " HUP caught, re-loading config"
 
