@@ -25,7 +25,8 @@ supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " 
                                     cfg <- atomically $ readTVar sharedGroupConfig
                                     let my_spec = find_me cfg
                                     case name my_spec of
-                                         "" -> log "QUIT (missing from config on restart)"
+                                         "" -> do log "QUIT (missing from config on restart)"
+                                                  deleteRunning
                                          otherwise ->  do
                                                             (attachOut, attachErr) <- makeFiles my_spec
 
@@ -47,7 +48,8 @@ supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " 
   
                                                             cfg <- atomically $ readTVar sharedGroupConfig
                                                             if M.notMember id (spec cfg) 
-                                                                then    log  "QUIT"
+                                                                then do log  "QUIT"
+                                                                        deleteRunning
   
                                                                 else do log  "WAITING"
                                                                         sleepSecs $ delay my_spec
@@ -62,6 +64,10 @@ supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " 
                                                         writeTVar sharedGroupConfig wcfg{
                                                   running=M.insertWith' (\n o-> n) id (my_spec, mpid) (running wcfg)
                                                         }
+        deleteRunning = atomically $ do wcfg <- readTVar sharedGroupConfig
+                                        writeTVar sharedGroupConfig wcfg{
+                                       running=M.delete id (running wcfg)
+                                        }
         makeFiles my_spec = do  attachOut <- case stdout my_spec of
                                   ""    -> return Inherit
                                   other -> UseHandle `fmap` openFile other AppendMode 
