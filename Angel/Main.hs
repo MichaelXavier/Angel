@@ -21,27 +21,28 @@ import Angel.Job (pollStale)
 handleHup :: TVar (Maybe Int) -> IO ()
 handleHup wakeSig = atomically $ writeTVar wakeSig $ Just 1
 
-main = do hSetBuffering stdout LineBuffering
-          hSetBuffering stderr LineBuffering
-          let log = logger "main" 
-          log "Angel started"
-          args <- getArgs
+main = do 
+    hSetBuffering stdout LineBuffering
+    hSetBuffering stderr LineBuffering
+    let log = logger "main" 
+    log "Angel started"
+    args <- getArgs
 
-          -- Exactly one argument required for the `angel` executable
-          unless (length args == 1) $ error "exactly one argument required: config file"
-          let configPath = head args
-          log $ "Using config file: " ++ configPath
+    -- Exactly one argument required for the `angel` executable
+    unless (length args == 1) $ error "exactly one argument required: config file"
+    let configPath = head args
+    log $ "Using config file: " ++ configPath
 
-          -- Create the TVar that represents the "global state" of running applications
-          -- and applications that _should_ be running
-          sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty
+    -- Create the TVar that represents the "global state" of running applications
+    -- and applications that _should_ be running
+    sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty
 
-          -- The wake signal, set by the HUP handler to wake the monitor loop
-          wakeSig <- newTVarIO Nothing
-          installHandler sigHUP (Catch $ handleHup wakeSig) Nothing
+    -- The wake signal, set by the HUP handler to wake the monitor loop
+    wakeSig <- newTVarIO Nothing
+    installHandler sigHUP (Catch $ handleHup wakeSig) Nothing
 
-          -- Fork off an ongoing state monitor to watch for inconsistent state
-          forkIO $ pollStale sharedGroupConfig
+    -- Fork off an ongoing state monitor to watch for inconsistent state
+    forkIO $ pollStale sharedGroupConfig
 
-          -- Finally, run the config load/monitor thread
-          runInUnboundThread $ forever $ monitorConfig configPath sharedGroupConfig wakeSig
+    -- Finally, run the config load/monitor thread
+    runInUnboundThread $ forever $ monitorConfig configPath sharedGroupConfig wakeSig

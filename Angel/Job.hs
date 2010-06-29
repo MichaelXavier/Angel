@@ -15,73 +15,87 @@ import Angel.Log (logger)
 import Angel.Data
 import Angel.Util (sleepSecs)
 
+ifEmpty :: String -> IO () -> IO () -> IO ()
+ifEmpty s ioa iob = if s == "" then ioa else iob
 -- |launch the program specified by `id`, opening (and closing) the
 -- |appropriate fds for logging.  When the process dies, either b/c it was
 -- |killed by a monitor, killed by a system user, or ended execution naturally,
 -- |re-examine the desired run config to determine whether to re-run it.  if so,
 -- |tail call.
-supervise sharedGroupConfig id = do let log = logger $ "- program: " ++ id ++ " -"
-                                    log "START"
-                                    cfg <- atomically $ readTVar sharedGroupConfig
-                                    let my_spec = find_me cfg
-                                    case name my_spec of
-                                         "" -> do log "QUIT (missing from config on restart)"
-                                                  deleteRunning
-                                         otherwise ->  do
-                                                            (attachOut, attachErr) <- makeFiles my_spec
+supervise sharedGroupConfig id = do 
+    let log = logger $ "- program: " ++ id ++ " -"
+    log "START"
+    cfg <- atomically $ readTVar sharedGroupConfig
+    let my_spec = find_me cfg
+    ifEmpty (name my_spec) 
 
-                                                            let (cmd, args) = cmdSplit $ exec my_spec
+        (log "QUIT (missing from config on restart)" >> deleteRunning) 
+        
+        (do
+            (attachOut, attachErr) <- makeFiles my_spec
 
-                                                            (_, _, _, p) <- createProcess (proc cmd args){
-                                                                  std_out = attachOut,
-                                                                  std_err = attachErr
-                                                                  }
+            let (cmd, args) = cmdSplit $ exec my_spec
+            
+            (_, _, _, p) <- createProcess (proc cmd args){
+            std_out = attachOut,
+            std_err = attachErr
+            }
+            
+            updateRunningPid my_spec (Just p)
+            log "RUNNING"
+            waitForProcess p
+            log "ENDED"
+            updateRunningPid my_spec (Nothing)
+            
+            -- close files we opened
+            mapM_ closeIfNecessary [attachOut, attachErr]
+            
+            cfg <- atomically $ readTVar sharedGroupConfig
+            if M.notMember id (spec cfg) 
 
-                                                            updateRunningPid my_spec (Just p)
-                                                            log "RUNNING"
-                                                            waitForProcess p
-                                                            log "ENDED"
-                                                            updateRunningPid my_spec (Nothing)
-  
-                                                            -- close files we opened
-                                                            mapM_ closeIfNecessary [attachOut, attachErr]
-  
-                                                            cfg <- atomically $ readTVar sharedGroupConfig
-                                                            if M.notMember id (spec cfg) 
-                                                                then do log  "QUIT"
-                                                                        deleteRunning
-  
-                                                                else do log  "WAITING"
-                                                                        sleepSecs $ delay my_spec
-                                                                        log  "RESTART"
-                                                                        supervise sharedGroupConfig id
+                then do 
+                log  "QUIT"
+                deleteRunning
+
+                else do 
+                log  "WAITING"
+                sleepSecs $ delay my_spec
+                log  "RESTART"
+                supervise sharedGroupConfig id
+        )
+        
     where
         cmdSplit fullcmd = (head parts, tail parts) 
             where parts = (filter (/="") . map strip . split " ") fullcmd
 
         find_me cfg = M.findWithDefault defaultProgram id (spec cfg)
-        updateRunningPid my_spec mpid = atomically $ do wcfg <- readTVar sharedGroupConfig
-                                                        writeTVar sharedGroupConfig wcfg{
-                                                  running=M.insertWith' (\n o-> n) id (my_spec, mpid) (running wcfg)
-                                                        }
-        deleteRunning = atomically $ do wcfg <- readTVar sharedGroupConfig
-                                        writeTVar sharedGroupConfig wcfg{
-                                       running=M.delete id (running wcfg)
-                                        }
-        makeFiles my_spec = do  attachOut <- case stdout my_spec of
-                                  ""    -> return Inherit
-                                  other -> UseHandle `fmap` openFile other AppendMode 
-
-                                attachErr <- case stderr my_spec of
-                                  ""    -> return Inherit
-                                  other -> if other == stdout my_spec 
-                                           then return attachOut
-                                           else UseHandle `fmap` openFile other AppendMode 
-                                return $ (attachOut, attachErr)
+        updateRunningPid my_spec mpid = atomically $ do 
+            wcfg <- readTVar sharedGroupConfig
+            writeTVar sharedGroupConfig wcfg{
+              running=M.insertWith' (\n o-> n) id (my_spec, mpid) (running wcfg)
+            }
+                
+        deleteRunning = atomically $ do 
+            wcfg <- readTVar sharedGroupConfig
+            writeTVar sharedGroupConfig wcfg{
+                running=M.delete id (running wcfg)
+            }
+            
+        makeFiles my_spec = do  
+            attachOut <- case stdout my_spec of
+                ""    -> return Inherit
+                other -> UseHandle `fmap` openFile other AppendMode 
+  
+            attachErr <- case stderr my_spec of
+                ""    -> return Inherit
+                other -> if other == stdout my_spec 
+                         then return attachOut
+                         else UseHandle `fmap` openFile other AppendMode 
+            return $ (attachOut, attachErr)
 
         closeIfNecessary hspec = case hspec of 
-                                    UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
-                                    otherwise -> return ()
+            UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
+            otherwise -> return ()
 
 
 -- |send a TERM signal to all provided process handles
@@ -97,15 +111,16 @@ startProcesses sharedGroupConfig starts = mapM_ spawnWatcher starts
 -- |diff the requested config against the actual run state, and
 -- |do any start/kill action necessary
 syncSupervisors :: TVar GroupConfig -> IO ()
-syncSupervisors sharedGroupConfig = do let log = logger "process-monitor"
-                                       cfg <- atomically $ readTVar sharedGroupConfig
-                                       let kills = mustKill cfg
-                                       let starts = mustStart cfg
-                                       when (length kills > 0 || length starts > 0) $ log (
-                                             "Must kill=" ++ (show $ length kills)
-                                                    ++ ", must start=" ++ (show $ length starts))
-                                       killProcesses kills
-                                       startProcesses sharedGroupConfig starts
+syncSupervisors sharedGroupConfig = do 
+   let log = logger "process-monitor"
+   cfg <- atomically $ readTVar sharedGroupConfig
+   let kills = mustKill cfg
+   let starts = mustStart cfg
+   when (length kills > 0 || length starts > 0) $ log (
+         "Must kill=" ++ (show $ length kills)
+                ++ ", must start=" ++ (show $ length starts))
+   killProcesses kills
+   startProcesses sharedGroupConfig starts
                                          
     where
         mustKill cfg = map (fromJust . snd . snd) $ filter (runningAndDifferent $ spec cfg) $ M.assocs (running cfg)
