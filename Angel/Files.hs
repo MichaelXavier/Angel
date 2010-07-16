@@ -13,15 +13,21 @@ startFileManager req = forever $ fileManager req
 fileManager :: TChan FileRequest -> IO ()
 fileManager req = do 
     (path, resp) <- atomically $ readTChan req
-    hand <- openFile path AppendMode
-    hand' <- hDuplicate hand
-    hClose hand
-    atomically $ writeTChan resp hand'
+    mh <- catch  (openFile path AppendMode >>= \h-> return $ Just h) (\e-> return Nothing)
+    case mh of
+        Just hand -> do
+            hand' <- hDuplicate hand
+            hClose hand
+            atomically $ writeTChan resp (Just hand')
+        Nothing -> atomically $ writeTChan resp Nothing
     fileManager req
 
 getFile :: String -> GroupConfig -> IO Handle
 getFile path cfg = do
     resp <- newTChanIO
     atomically $ writeTChan (fileRequest cfg) (path, resp)
-    hand <- atomically $ readTChan resp
+    mh <- atomically $ readTChan resp
+    hand <- case mh of
+        Just hand -> return hand
+        Nothing -> error $ "could not open stdout/stderr file " ++ path
     return hand
