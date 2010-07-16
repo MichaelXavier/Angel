@@ -4,6 +4,7 @@ import Control.Concurrent (threadDelay, forkIO, forkOS)
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
+import Control.Concurrent.STM.TChan (newTChan)
 import Control.Monad (unless, when, forever)
 import System.Environment (getArgs)
 import System.Posix.Signals
@@ -15,6 +16,7 @@ import Angel.Log (logger)
 import Angel.Config (monitorConfig)
 import Angel.Data (GroupConfig(..))
 import Angel.Job (pollStale)
+import Angel.Files (startFileManager)
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
 -- |to make the configuration monitor loop cycle/reload
@@ -35,7 +37,8 @@ main = do
 
     -- Create the TVar that represents the "global state" of running applications
     -- and applications that _should_ be running
-    sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty
+    fileReqChan <- atomically $ newTChan
+    sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty fileReqChan
 
     -- The wake signal, set by the HUP handler to wake the monitor loop
     wakeSig <- newTVarIO Nothing
@@ -43,6 +46,7 @@ main = do
 
     -- Fork off an ongoing state monitor to watch for inconsistent state
     forkIO $ pollStale sharedGroupConfig
+    forkIO $ startFileManager fileReqChan
 
     -- Finally, run the config load/monitor thread
     runInUnboundThread $ forever $ monitorConfig configPath sharedGroupConfig wakeSig
