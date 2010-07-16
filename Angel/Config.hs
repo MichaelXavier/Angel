@@ -17,13 +17,21 @@ buildConfigMap cfg = M.fromList [(name p, p) | p <- cfg]
 
 -- |invoke the parser to process the file at configPath
 -- |produce a SpecKey
-processConfig :: String -> IO (Either ParseError SpecKey)
+processConfig :: String -> IO (Either String SpecKey)
 processConfig configPath = do 
-    c <- readFile configPath
-    let cfg = parseConfig c
-    case cfg of
-        Left e -> return $ Left e
-        Right cfg -> do return $ Right $ buildConfigMap cfg
+    mc <- catch ( do
+            c <- readFile configPath 
+            return $ Just c
+            ) (\e-> return Nothing)
+
+    res <- case mc of 
+        Just c -> do
+            let cfg = parseConfig c
+            case cfg of
+                Left e -> return $ Left $ show e
+                Right cfg -> do return $ Right $ buildConfigMap cfg
+        Nothing -> return $ Left ("could not read config file at " ++ configPath)
+    return res
 
 -- |given a new SpecKey just parsed from the file, update the 
 -- |shared state TVar
@@ -40,7 +48,7 @@ monitorConfig configPath sharedGroupConfig wakeSig = do
     mspec <- processConfig configPath
     case mspec of 
         Left e     -> do 
-            log $ " <<<< Config Error >>>>\n" ++ show e
+            log $ " <<<< Config Error >>>>\n" ++ e
             log " <<<< Config Error: Skipping reload >>>>"
         Right spec -> do 
             atomically $ updateSpecConfig sharedGroupConfig spec
