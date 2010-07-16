@@ -4,7 +4,6 @@ import Data.String.Utils (split, strip)
 import Data.Maybe (isJust, fromJust)
 import System.Process (createProcess, proc, waitForProcess, ProcessHandle)
 import System.Process (terminateProcess, CreateProcess(..), StdStream(..))
-import System.IO (hClose, openFile, IOMode(..), hIsClosed)
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
@@ -14,6 +13,7 @@ import Control.Monad (unless, when, forever)
 import Angel.Log (logger)
 import Angel.Data
 import Angel.Util (sleepSecs)
+import Angel.Files (getFile)
 
 ifEmpty :: String -> IO () -> IO () -> IO ()
 ifEmpty s ioa iob = if s == "" then ioa else iob
@@ -32,7 +32,7 @@ supervise sharedGroupConfig id = do
         (log "QUIT (missing from config on restart)" >> deleteRunning) 
         
         (do
-            (attachOut, attachErr) <- makeFiles my_spec
+            (attachOut, attachErr) <- makeFiles my_spec cfg
 
             let (cmd, args) = cmdSplit $ exec my_spec
             
@@ -46,9 +46,6 @@ supervise sharedGroupConfig id = do
             waitForProcess p
             log "ENDED"
             updateRunningPid my_spec (Nothing)
-            
-            -- close files we opened
-            mapM_ closeIfNecessary [attachOut, attachErr]
             
             cfg <- atomically $ readTVar sharedGroupConfig
             if M.notMember id (spec cfg) 
@@ -81,21 +78,15 @@ supervise sharedGroupConfig id = do
                 running=M.delete id (running wcfg)
             }
             
-        makeFiles my_spec = do  
+        makeFiles my_spec cfg = do  
             attachOut <- case stdout my_spec of
                 ""    -> return Inherit
-                other -> UseHandle `fmap` openFile other AppendMode 
+                other -> UseHandle `fmap` getFile other cfg
   
             attachErr <- case stderr my_spec of
                 ""    -> return Inherit
-                other -> if other == stdout my_spec 
-                         then return attachOut
-                         else UseHandle `fmap` openFile other AppendMode 
+                other -> UseHandle `fmap` getFile other cfg
             return $ (attachOut, attachErr)
-
-        closeIfNecessary hspec = case hspec of 
-            UseHandle h -> hIsClosed h >>= \c-> unless c (hClose h)
-            otherwise -> return ()
 
 
 -- |send a TERM signal to all provided process handles

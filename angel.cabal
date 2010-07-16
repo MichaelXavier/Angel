@@ -69,4 +69,4 @@ Executable angel
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
   
-  Ghc-Options: -threaded
+  Ghc-Options: -threaded 
