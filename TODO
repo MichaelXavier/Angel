@@ -1,5 +1,2 @@
  * "Real" args-parsing/splitting to support quotes, etc (use some lib?)
  * ghc 6.10 support? (patches welcome)
- * File manager (in progress)
- * Crash-proof against config file missing, or file open failures
- * Close files on app crash

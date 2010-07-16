@@ -18,7 +18,7 @@ data GroupConfig = GroupConfig {
 type SpecKey = M.Map ProgramId Program
 type RunKey = M.Map ProgramId (Program, Maybe ProcessHandle)
 type ProgramId = String
-type FileRequest = (String, TChan Handle)
+type FileRequest = (String, TChan (Maybe Handle))
 
 -- |the representation of a program is these 5 values, 
 -- |read from the config file
