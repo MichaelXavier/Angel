@@ -100,7 +100,7 @@ here's an example:
     stderr /tmp/ls_log
     delay 7
 
-Each program that should be supervised stats with a `program-id` block:
+Each program that should be supervised starts with a `program-id` block:
 
     [watch-date]
 
