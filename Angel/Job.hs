@@ -38,7 +38,8 @@ supervise sharedGroupConfig id = do
             
             (_, _, _, p) <- createProcess (proc cmd args){
             std_out = attachOut,
-            std_err = attachErr
+            std_err = attachErr,
+            cwd = workingDir my_spec 
             }
             
             updateRunningPid my_spec (Just p)

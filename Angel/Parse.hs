@@ -22,6 +22,7 @@ configLine = do
             "delay" -> reqInt
             "stdout" -> configString
             "stderr" -> configString
+            "directory" -> configString
             otherwise -> fail $ "unknown config verb '" ++ name ++ "'"
     return $ Just (strip name, strip val)
 
@@ -56,6 +57,7 @@ program = do
                                     "delay" -> return prg{delay=(read v)::Int}
                                     "stdout" -> return prg{stdout=v}
                                     "stderr" -> return prg{stderr=v}
+                                    "directory" -> return prg { workingDir = Just v }
                                     otherwise -> fail $ "unknown config keyword " ++ n
         setAttr _ _ = fail "non-just in setAttr argument??"
 
