@@ -61,6 +61,8 @@ Executable angel
   Build-depends: unix >= 2.4
   Build-depends: old-time
   Build-depends: old-locale
+  Build-depends: hdaemonize >= 0.4.4 && < 0.5
+  Build-depends: hsyslog >= 1.4 && < 1.5
 
   
   -- Modules not exported by this package.
