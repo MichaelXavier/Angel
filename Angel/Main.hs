@@ -9,7 +9,6 @@ import Control.Monad (unless, when, forever)
 import System.Environment (getArgs)
 import System.Posix.Signals
 import System.IO (hSetBuffering, BufferMode(..), stdout, stderr)
-import System.Posix.Daemonize
 
 import qualified Data.Map as M
 
@@ -19,31 +18,21 @@ import Angel.Data (GroupConfig(..))
 import Angel.Job (pollStale)
 import Angel.Files (startFileManager)
 
-main :: IO ()
-main = serviced angel
-
-angel :: CreateDaemon ()
-angel = simpleDaemon { program = angelMain }
-
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
 -- |to make the configuration monitor loop cycle/reload
 handleHup :: TVar (Maybe Int) -> IO ()
 handleHup wakeSig = atomically $ writeTVar wakeSig $ Just 1
 
---main = do 
-angelMain :: () -> IO ()
-angelMain _ = do
---    hSetBuffering stdout LineBuffering
---    hSetBuffering stderr LineBuffering
+main = do 
+    hSetBuffering stdout LineBuffering
+    hSetBuffering stderr LineBuffering
     let log = logger "main" 
     log "Angel started"
-    
---    args <- getArgs
+    args <- getArgs
 
     -- Exactly one argument required for the `angel` executable
---    unless (length args == 1) $ error "exactly one argument required: config file"
---    let configPath = head args
-    let configPath = "/etc/angeld.conf"
+    unless (length args == 1) $ error "exactly one argument required: config file"
+    let configPath = head args
     log $ "Using config file: " ++ configPath
 
     -- Create the TVar that represents the "global state" of running applications
