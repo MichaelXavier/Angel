@@ -69,8 +69,8 @@ daemons, it has been written to be very reliable:
    configuration if it runs into problems on configuration
    reloads
  * It has logged hundreds of thousands of uptime-hours
-   supervising all the daemons that power http://bu.mp
-   without a single memory leak or crash
+   since 2010-07 supervising all the daemons that power
+   http://bu.mp without a single memory leak or crash
 
 Building
 --------
