@@ -114,6 +114,8 @@ Then, a series of corresponding configuration commands follow:
  * `delay` is the number of seconds (integer) `angel` should wait
    after the program dies before attempting to start it again
    (optional, defaults to 5)
+ * `directory` is the current working directory of the newly
+   executed program (optional, defaults to angel's cwd)
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
