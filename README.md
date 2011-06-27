@@ -55,19 +55,22 @@ Because of `angel`'s role in policing the behavior of other
 daemons, it has been written to be very reliable:
 
  * It is written in Haskell, which boasts a combination of
-   strong, static typing and purity-by-default that lends 
+   strong, static typing and purity-by-default that lends
    itself to very low bug counts
  * It uses multiple, simple, independent lightweight threads
    with specific roles, ownership, and interfaces
- * It uses STM for mutex-free state synchronization between 
+ * It uses STM for mutex-free state synchronization between
    these threads
  * It falls back to polling behavior to ensure eventual
    synchronization between configuration state and run
    state, just in case odd timing issues should make
    event-triggered changes fail
- * It simply logs errors and keeps running the last good 
+ * It simply logs errors and keeps running the last good
    configuration if it runs into problems on configuration
    reloads
+ * It has logged hundreds of thousands of uptime-hours
+   supervising all the daemons that power http://bu.mp
+   without a single memory leak or crash
 
 Building
 --------
