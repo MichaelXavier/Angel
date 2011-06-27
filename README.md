@@ -207,3 +207,7 @@ Jamie Turner <jamie@jamwt.com>
 
 Thanks to Bump Technologies, Inc. (http://bu.mp) for sponsoring some
 of the work on angel.
+
+And, of course, thanks to all Angel's contributors:
+
+https://github.com/jamwt/Angel/contributors
