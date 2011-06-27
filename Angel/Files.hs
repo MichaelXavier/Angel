@@ -7,7 +7,6 @@ import System.IO (Handle, hClose, openFile, IOMode(..), hIsClosed)
 import GHC.IO.Handle (hDuplicate)
 import Debug.Trace (trace)
 import Angel.Data (GroupConfig(..), FileRequest)
-import Angel.Log
 
 startFileManager req = forever $ fileManager req
 
@@ -30,7 +29,5 @@ getFile path cfg = do
     mh <- atomically $ readTChan resp
     hand <- case mh of
         Just hand -> return hand
-        Nothing -> do
-                   logger "get-file" $ "Could not open stdout/stderr file " ++ path
-                   error $ "could not open stdout/stderr file " ++ path
+        Nothing -> error $ "could not open stdout/stderr file " ++ path
     return hand
