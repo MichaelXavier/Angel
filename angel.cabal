@@ -24,18 +24,29 @@ License-file:        LICENSE
 -- The package author(s).
 Author:              Jamie Turner
 
+-- Synopsos
+Synopsis: Process management and supervision daemon
+
+Description:    @angel@ is a daemon that runs and monitors other processes.  It
+                is similar to djb's `daemontools` or the Ruby project `god`.
+                .
+                It's goals are to keep a set of services running, and to facilitate
+                the easy configuration and restart of those services.
+
+                See the homepage for documentation.
+
 -- An email address to which users can send suggestions, bug reports,
 -- and patches.
 Maintainer:          jamie@bu.mp
+
+Homepage:            http://github.com/jamwt/Angel
 
 -- A copyright notice.
 -- Copyright:           
 
 -- Stability of the pakcage (experimental, provisional, stable...)
 Stability:           Stable
-
 Category:            System
-
 Build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or
@@ -43,8 +54,12 @@ Build-type:          Simple
 -- Extra-source-files:  
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.2
+Cabal-version:       >=1.6
 
+
+source-repository head
+    type: git
+    location: https://github.com/jamwt/Angel.git
 
 Executable angel
   -- .hs or .lhs file containing the Main module.
