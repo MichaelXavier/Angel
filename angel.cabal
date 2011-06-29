@@ -26,13 +26,13 @@ Author:              Jamie Turner
 
 -- An email address to which users can send suggestions, bug reports,
 -- and patches.
-Maintainer:          jamie@jamwt.com
+Maintainer:          jamie@bu.mp
 
 -- A copyright notice.
 -- Copyright:           
 
 -- Stability of the pakcage (experimental, provisional, stable...)
-Stability:           Experimental
+Stability:           Stable
 
 Category:            System
 
