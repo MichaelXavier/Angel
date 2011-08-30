@@ -7,7 +7,7 @@ Name:                angel
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.2
+Version:             0.2.1
 
 -- A short (one-line) description of the package.
 -- Synopsis:            
@@ -66,7 +66,7 @@ Executable angel
   Main-is: Angel/Main.hs
   
   -- Packages needed in order to build this package.
-  Build-depends: base >= 4.0
+  Build-depends: base >= 4.0 && < 5
   Build-depends: process >= 1.0
   Build-depends: mtl
   Build-depends: MissingH
@@ -79,7 +79,14 @@ Executable angel
 
   
   -- Modules not exported by this package.
-  -- Other-modules:       
+  Other-modules: Angel.Files,
+                 Angel.Config,
+                 Angel.Data,
+                 Angel.Files,
+                 Angel.Job,
+                 Angel.Log,
+                 Angel.Parse,
+                 Angel.Util
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
