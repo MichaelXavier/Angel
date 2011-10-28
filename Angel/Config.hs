@@ -2,6 +2,7 @@ module Angel.Config where
 
 import Control.Exception (try, SomeException)
 import qualified Data.Map as M
+import Control.Monad (when, mapM_, void)
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Data.Configurator (load, getMap, Worth(..))
@@ -33,6 +34,11 @@ buildConfigMap cfg =
       where
         (basekey:localkey:[]) = split "." (T.unpack key)
 
+checkConfigValues :: SpecKey -> IO SpecKey
+checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
+  where
+    checkProgram p = void $ when (exec p == "") $ error $ name p ++ " does not have an 'exec' specification"
+
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog{exec = (T.unpack s)}
 modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"
@@ -54,7 +60,7 @@ modifyProg prog n _ = error $ "unrecognized field: " ++ n
 -- |produce a SpecKey
 processConfig :: String -> IO (Either String SpecKey)
 processConfig configPath = do 
-    mconf <- try $ load [Required configPath] >>= getMap >>= buildConfigMap
+    mconf <- try $ load [Required configPath] >>= getMap >>= buildConfigMap >>= checkConfigValues
 
     case mconf of
         Right config -> return $ Right config
