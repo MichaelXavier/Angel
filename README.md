@@ -75,7 +75,7 @@ daemons, it has been written to be very reliable:
 Building
 --------
 
- 1. Install the haskell-platform 2010 (or somehow, ghc 6.12 + 
+ 1. Install the haskell-platform 2011 (or somehow, ghc 7.0 + 
     cabal-install)
  2. Run `cabal install` in the project root (this directory)
  3. Either add the ~/.cabal/bin file to your $PATH or copy
@@ -83,7 +83,8 @@ Building
 
 Notes:
 
- * I have not tried building `angel` against ghc 6.10 or earlier
+ * I have not tried building `angel` against ghc 6.10 or earlier;
+   6.12 likely works fine
 
 Configuration and Usage Example
 -------------------------------
@@ -91,8 +92,12 @@ Configuration and Usage Example
 The `angel` executable takes exactly one argument: a path to
 an angel configuration file.
 
-Angel configuration files are quasi-INI style configuration files;
-here's an example:
+Angel configuration system is based on Bryan O'Sullivan's `configurator`
+package.  A full description of the format can be found here:
+
+http://hackage.haskell.org/packages/archive/configurator/0.1.0.0/doc/html/Data-Configurator.html
+
+A basic configuration file might look like this:
 
     watch-date {
         exec = "watch date"
@@ -184,6 +189,15 @@ As you can see, the config monitor reloaded on HUP, and then the
 process monitor marked the watch-date process for killing.  TERM
 was sent to the child process, and then the supervisor loop QUIT
 because the watch-date program no longer had a config entry.
+
+Advanced Configuration
+----------------------
+
+The `configurator` package supports `import` statements, as
+well as environment variable expansion.  Using collections
+of configuration files and host-based or service-based
+environment variables, efficient, templated `angel`
+configurations can be had.
 
 FAQ
 ---
