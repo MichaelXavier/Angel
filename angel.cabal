@@ -7,7 +7,7 @@ Name:                angel
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.2.1
+Version:             0.3
 
 -- A short (one-line) description of the package.
 -- Synopsis:            
@@ -70,12 +70,14 @@ Executable angel
   Build-depends: process >= 1.0
   Build-depends: mtl
   Build-depends: MissingH
-  Build-depends: parsec
+  Build-depends: configurator >= 0.1
   Build-depends: stm >= 2.0
   Build-depends: containers >= 0.3
+  Build-depends: unordered-containers >= 0.1.4
   Build-depends: unix >= 2.4
   Build-depends: old-time
   Build-depends: old-locale
+  Build-depends: text>=0.11
 
   
   -- Modules not exported by this package.
@@ -85,10 +87,11 @@ Executable angel
                  Angel.Files,
                  Angel.Job,
                  Angel.Log,
-                 Angel.Parse,
                  Angel.Util
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
+
+  Extensions: OverloadedStrings,ScopedTypeVariables
   
   Ghc-Options: -threaded 
