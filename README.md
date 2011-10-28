@@ -23,7 +23,7 @@ Functionality
 -------------
 
 `angel` is driven by a configuration file that contains a list of
-program specifications to run.  Angel assumes every program listed in 
+program specifications to run.  `angel` assumes every program listed in 
 the specification file should be running at all times.
 
 `angel` starts each program, and optionally sets the program's stdout
@@ -92,7 +92,7 @@ Configuration and Usage Example
 The `angel` executable takes exactly one argument: a path to
 an angel configuration file.
 
-Angel configuration system is based on Bryan O'Sullivan's `configurator`
+`angel`'s configuration system is based on Bryan O'Sullivan's `configurator`
 package.  A full description of the format can be found here:
 
 http://hackage.haskell.org/packages/archive/configurator/0.1.0.0/doc/html/Data-Configurator.html
