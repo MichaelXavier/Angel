@@ -94,18 +94,20 @@ an angel configuration file.
 Angel configuration files are quasi-INI style configuration files;
 here's an example:
 
-    [watch-date]
-    exec watch date
+    watch-date {
+        exec = "watch date"
+    }
 
-    [ls]
-    exec ls
-    stdout /tmp/ls_log
-    stderr /tmp/ls_log
-    delay 7
+    ls {
+        exec = "ls"
+        stdout = "/tmp/ls_log"
+        stderr = "/tmp/ls_log"
+        delay 7
+    }
 
-Each program that should be supervised starts with a `program-id` block:
+Each program that should be supervised starts a `program-id` block:
 
-    [watch-date]
+    watch-date {
 
 Then, a series of corresponding configuration commands follow:
 
@@ -155,14 +157,16 @@ is triggered and it is started again, ad naseum.
 
 Now, let's see what happens if we modify the config file to look like this:
 
-    #[watch-date]
-    #exec watch date
-     
-    [ls]
-    exec ls
-    stdout /tmp/ls_log
-    stderr /tmp/ls_log
-    delay 7
+    #watch-date {
+    #    exec = "watch date"
+    #}
+
+    ls {
+        exec = "ls"
+        stdout = "/tmp/ls_log"
+        stderr = "/tmp/ls_log"
+        delay 7
+    }
 
 .. and then send HUP to angel.
 
