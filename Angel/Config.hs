@@ -2,7 +2,7 @@ module Angel.Config where
 
 import Control.Exception (try, SomeException)
 import qualified Data.Map as M
-import Control.Monad (when, mapM_, void)
+import Control.Monad (when, mapM_)
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Data.Configurator (load, getMap, Worth(..))
@@ -18,6 +18,9 @@ import Angel.Log (logger)
 import Angel.Util (waitForWake)
 
 import Debug.Trace (trace)
+
+void :: Monad m => m a -> m ()
+void m = m >> return ()
 
 -- |produce a mapping of name -> program for every program
 buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
@@ -44,7 +47,7 @@ modifyProg prog "exec" (String s) = prog{exec = (T.unpack s)}
 modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"
 
 modifyProg prog "delay" (Number n) | n < 0     = error "delay value must be >= 0"
-                                   | otherwise = prog{delay = (fromIntegral n)}
+                                   | otherwise = prog{delay = round n}
 modifyProg prog "delay" _ = error "wrong type for field 'delay'; integer"
 
 modifyProg prog "stdout" (String s) = prog{stdout = (T.unpack s)}
