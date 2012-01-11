@@ -56,6 +56,9 @@ modifyProg prog "stdout" _ = error "wrong type for field 'stdout'; string requir
 modifyProg prog "stderr" (String s) = prog{stderr = (T.unpack s)}
 modifyProg prog "stderr" _ = error "wrong type for field 'stderr'; string required"
 
+modifyProg prog "directory" (String s) = prog{workingDir = (Just $ T.unpack s)}
+modifyProg prog "directory" _ = error "wrong type for field 'directory'; string required"
+
 modifyProg prog n _ = error $ "unrecognized field: " ++ n
 
 
