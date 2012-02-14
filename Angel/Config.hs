@@ -28,14 +28,15 @@ buildConfigMap cfg =
     return $! HM.foldlWithKey' addToMap M.empty $ cfg
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
-    addToMap m key value =
+    addToMap m 
+             (split "." . T.unpack -> [basekey, localkey])
+             value =
         let !newprog = case M.lookup basekey m of
                           Just prog -> modifyProg prog localkey value
                           Nothing   -> modifyProg defaultProgram{name=basekey} localkey value
             in
         M.insert basekey newprog m
-      where
-        (basekey:localkey:[]) = split "." (T.unpack key)
+    addToMap m _ _ = m
 
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
@@ -59,7 +60,7 @@ modifyProg prog "stderr" _ = error "wrong type for field 'stderr'; string requir
 modifyProg prog "directory" (String s) = prog{workingDir = (Just $ T.unpack s)}
 modifyProg prog "directory" _ = error "wrong type for field 'directory'; string required"
 
-modifyProg prog n _ = error $ "unrecognized field: " ++ n
+modifyProg prog n _ = prog
 
 
 -- |invoke the parser to process the file at configPath

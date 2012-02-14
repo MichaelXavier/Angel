@@ -92,6 +92,6 @@ Executable angel
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
 
-  Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns
+  Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   
   Ghc-Options: -threaded 
