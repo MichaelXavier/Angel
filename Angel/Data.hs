@@ -24,10 +24,10 @@ type FileRequest = (String, TChan (Maybe Handle))
 -- |read from the config file
 data Program = Program {
     name :: String,
-    exec :: String,
-    delay :: Int,
-    stdout :: String,
-    stderr :: String,
+    exec :: Maybe String,
+    delay :: Maybe Int,
+    stdout :: Maybe String,
+    stderr :: Maybe String,
     workingDir :: Maybe FilePath
 } deriving (Show, Eq, Ord)
 
@@ -36,11 +36,7 @@ type Spec = [Program]
 
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
-defaultProgram = Program{
-    name="",
-    exec="",
-    delay=5,
-    stdout="/dev/null",
-    stderr="/dev/null",
-    workingDir = Nothing
-}
+defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing
+defaultDelay = 5 :: Int
+defaultStdout = "/dev/null"
+defaultStderr = "/dev/null"

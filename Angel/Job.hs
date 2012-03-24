@@ -1,7 +1,7 @@
 module Angel.Job where
 
 import Data.String.Utils (split, strip)
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.Process (createProcess, proc, waitForProcess, ProcessHandle)
 import System.Process (terminateProcess, CreateProcess(..), StdStream(..))
 import Control.Concurrent
@@ -34,7 +34,7 @@ supervise sharedGroupConfig id = do
         (do
             (attachOut, attachErr) <- makeFiles my_spec cfg
 
-            let (cmd, args) = cmdSplit $ exec my_spec
+            let (cmd, args) = cmdSplit $ (fromJust $ exec my_spec)
             
             (_, _, _, p) <- createProcess (proc cmd args){
             std_out = attachOut,
@@ -57,7 +57,7 @@ supervise sharedGroupConfig id = do
 
                 else do 
                 log  "WAITING"
-                sleepSecs $ delay my_spec
+                sleepSecs $ (fromMaybe defaultDelay $ delay my_spec)
                 log  "RESTART"
                 supervise sharedGroupConfig id
         )
@@ -79,14 +79,13 @@ supervise sharedGroupConfig id = do
                 running=M.delete id (running wcfg)
             }
             
-        makeFiles my_spec cfg = do  
-            attachOut <- case stdout my_spec of
-                ""    -> return Inherit
-                other -> UseHandle `fmap` getFile other cfg
-  
-            attachErr <- case stderr my_spec of
-                ""    -> return Inherit
-                other -> UseHandle `fmap` getFile other cfg
+        makeFiles my_spec cfg = do
+            let useout = fromMaybe defaultStdout $ stdout my_spec
+            attachOut <- UseHandle `fmap` getFile useout cfg
+
+            let useerr = fromMaybe defaultStderr $ stderr my_spec
+            attachErr <- UseHandle `fmap` getFile useerr cfg
+
             return $ (attachOut, attachErr)
 
 

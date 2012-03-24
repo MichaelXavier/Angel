@@ -41,20 +41,20 @@ buildConfigMap cfg =
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
   where
-    checkProgram p = void $ when (exec p == "") $ error $ name p ++ " does not have an 'exec' specification"
+    checkProgram p = void $ when (exec p == Nothing) $ error $ name p ++ " does not have an 'exec' specification"
 
 modifyProg :: Program -> String -> Value -> Program
-modifyProg prog "exec" (String s) = prog{exec = (T.unpack s)}
+modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
 modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"
 
 modifyProg prog "delay" (Number n) | n < 0     = error "delay value must be >= 0"
-                                   | otherwise = prog{delay = round n}
+                                   | otherwise = prog{delay = Just $ round n}
 modifyProg prog "delay" _ = error "wrong type for field 'delay'; integer"
 
-modifyProg prog "stdout" (String s) = prog{stdout = (T.unpack s)}
+modifyProg prog "stdout" (String s) = prog{stdout = Just (T.unpack s)}
 modifyProg prog "stdout" _ = error "wrong type for field 'stdout'; string required"
 
-modifyProg prog "stderr" (String s) = prog{stderr = (T.unpack s)}
+modifyProg prog "stderr" (String s) = prog{stderr = Just (T.unpack s)}
 modifyProg prog "stderr" _ = error "wrong type for field 'stderr'; string required"
 
 modifyProg prog "directory" (String s) = prog{workingDir = (Just $ T.unpack s)}
