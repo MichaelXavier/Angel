@@ -107,7 +107,7 @@ A basic configuration file might look like this:
         exec = "ls"
         stdout = "/tmp/ls_log"
         stderr = "/tmp/ls_log"
-        delay 7
+        delay = 7
     }
 
 Each program that should be supervised starts a `program-id` block:
@@ -170,7 +170,7 @@ Now, let's see what happens if we modify the config file to look like this:
         exec = "ls"
         stdout = "/tmp/ls_log"
         stderr = "/tmp/ls_log"
-        delay 7
+        delay = 7
     }
 
 .. and then send HUP to angel.
