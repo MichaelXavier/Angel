@@ -75,7 +75,7 @@ Executable angel
   Build-depends: containers >= 0.3
   Build-depends: unordered-containers >= 0.1.4
   Build-depends: unix >= 2.4
-  Build-depends: old-time
+  Build-depends: time
   Build-depends: old-locale
   Build-depends: text>=0.11
 
@@ -102,5 +102,5 @@ test-suite spec
   Hs-Source-Dirs: ., test
   Build-Depends:  base
   Build-Depends:  hspec
-  Build-depends:  old-time
+  Build-depends:  time
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
