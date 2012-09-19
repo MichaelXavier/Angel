@@ -95,3 +95,12 @@ Executable angel
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   
   Ghc-Options: -threaded 
+
+test-suite spec
+  Type:           exitcode-stdio-1.0
+  Main-Is:        Spec.hs
+  Hs-Source-Dirs: ., test
+  Build-Depends:  base
+  Build-Depends:  hspec
+  Build-depends:  old-time
+  Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
