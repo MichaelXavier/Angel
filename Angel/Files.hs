@@ -1,5 +1,6 @@
 module Angel.Files (getFile, startFileManager) where
 
+import Control.Exception (try, SomeException)
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TChan (readTChan, writeTChan, TChan, newTChan, newTChanIO)
 import Control.Monad (forever)
@@ -13,13 +14,13 @@ startFileManager req = forever $ fileManager req
 fileManager :: TChan FileRequest -> IO ()
 fileManager req = do 
     (path, resp) <- atomically $ readTChan req
-    mh <- catch  (openFile path AppendMode >>= \h-> return $ Just h) (\e-> return Nothing)
+    mh <- try $ openFile path AppendMode
     case mh of
-        Just hand -> do
+        Right hand -> do
             hand' <- hDuplicate hand
             hClose hand
             atomically $ writeTChan resp (Just hand')
-        Nothing -> atomically $ writeTChan resp Nothing
+        Left (e :: SomeException) -> atomically $ writeTChan resp Nothing
     fileManager req
 
 getFile :: String -> GroupConfig -> IO Handle
