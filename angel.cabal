@@ -75,7 +75,7 @@ Executable angel
   Build-depends: containers >= 0.3
   Build-depends: unordered-containers >= 0.1.4
   Build-depends: unix >= 2.4
-  Build-depends: old-time
+  Build-depends: time
   Build-depends: old-locale
   Build-depends: text>=0.11
 
@@ -95,3 +95,12 @@ Executable angel
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   
   Ghc-Options: -threaded 
+
+test-suite spec
+  Type:           exitcode-stdio-1.0
+  Main-Is:        Spec.hs
+  Hs-Source-Dirs: ., test
+  Build-Depends:  base
+  Build-Depends:  hspec
+  Build-depends:  time
+  Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns

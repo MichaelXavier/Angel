@@ -86,6 +86,18 @@ Notes:
  * I have not tried building `angel` against ghc 6.10 or earlier;
    6.12 and 7.2 are known to work
 
+Testing
+-------
+There are a few ways to run tests. The simplest is `make spec`. This requires
+you have `cabal-dev` installed.
+
+If you have Ruby installed and bundler installed (`gem install bundler`), you
+can use Guard to monitor source files and automatically run the test suite
+after you save:
+
+1. Run `bundle install`
+2. Run `guard start`. Hit enter to force rebuild.
+
 Configuration and Usage Example
 -------------------------------
 
