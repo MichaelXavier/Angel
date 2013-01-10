@@ -7,6 +7,7 @@ import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Data.Configurator (load, getMap, Worth(..))
 import Data.Configurator.Types (Config, Value(..), Name)
+import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
 import Data.String.Utils (split)
 import Data.List (foldl')
@@ -15,7 +16,8 @@ import qualified Data.Text as T
 import Angel.Job (syncSupervisors)
 import Angel.Data
 import Angel.Log (logger)
-import Angel.Util (waitForWake)
+import Angel.Util (waitForWake,
+                   expandPath)
 
 import Debug.Trace (trace)
 
@@ -67,7 +69,11 @@ modifyProg prog n _ = prog
 -- |produce a SpecKey
 processConfig :: String -> IO (Either String SpecKey)
 processConfig configPath = do 
-    mconf <- try $ load [Required configPath] >>= getMap >>= buildConfigMap >>= checkConfigValues
+    mconf <- try $ load [Required configPath] >>=
+                   getMap >>=
+                   buildConfigMap >>=
+                   expandPaths >>=
+                   checkConfigValues
 
     case mconf of
         Right config -> return $ Right config
@@ -97,3 +103,17 @@ monitorConfig configPath sharedGroupConfig wakeSig = do
             syncSupervisors sharedGroupConfig
     waitForWake wakeSig
     log "HUP caught, reloading config"
+
+expandPaths :: SpecKey -> IO SpecKey
+expandPaths = T.mapM expandProgramPaths
+
+expandProgramPaths :: Program -> IO Program
+expandProgramPaths prog = do exec'       <- maybeExpand $ exec prog
+                             stdout'     <- maybeExpand $ stdout prog
+                             stderr'     <- maybeExpand $ stderr prog
+                             workingDir' <- maybeExpand $ workingDir prog
+                             return prog { exec       = exec',
+                                           stdout     = stdout',
+                                           stderr     = stderr',
+                                           workingDir = workingDir'}
+    where maybeExpand = T.traverse expandPath
