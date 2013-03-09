@@ -47,7 +47,7 @@ checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
     checkProgram p = do
         when (isNothing $ exec p) $ error $ name p ++ " does not have an 'exec' specification"
         when ((isJust $ logExec p) &&
-            (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger either stderr/stdout"
+            (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger process and stderr/stdout"
 
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
@@ -85,7 +85,7 @@ processConfig configPath = do
     case mconf of
         Right config -> return $ Right config
         Left (e :: SomeException) -> return $ Left $ show e
-    
+
 
 -- |given a new SpecKey just parsed from the file, update the 
 -- |shared state TVar
