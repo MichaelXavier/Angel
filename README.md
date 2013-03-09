@@ -85,7 +85,7 @@ Building
 Notes:
 
  * I have not tried building `angel` against ghc 6.10 or earlier;
-   6.12, 7.2, 7.4, and 7.6 are known to work
+   6.12, 7.0, 7.2, 7.4, and 7.6 are known to work
 
 Testing
 -------
