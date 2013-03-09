@@ -1,5 +1,6 @@
 module Angel.Job where
 
+import Control.Exception (finally)
 import Data.String.Utils (split, strip)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import System.Process (createProcess, proc, waitForProcess, ProcessHandle)
@@ -29,7 +30,7 @@ supervise sharedGroupConfig id = do
     let my_spec = find_me cfg
     ifEmpty (name my_spec) 
 
-        (log "QUIT (missing from config on restart)" >> deleteRunning) 
+        (log "QUIT (missing from config on restart)") 
         
         (do
             (attachOut, attachErr) <- makeFiles my_spec cfg
@@ -53,7 +54,6 @@ supervise sharedGroupConfig id = do
 
                 then do 
                 log  "QUIT"
-                deleteRunning
 
                 else do 
                 log  "WAITING"
@@ -111,7 +111,33 @@ killProcesses pids = mapM_ terminateProcess pids
 startProcesses :: TVar GroupConfig -> [String] -> IO ()
 startProcesses sharedGroupConfig starts = mapM_ spawnWatcher starts
     where
-        spawnWatcher s = forkIO $ supervise sharedGroupConfig s
+        spawnWatcher s = forkIO $ wrapProcess sharedGroupConfig s
+
+wrapProcess :: TVar GroupConfig -> String -> IO ()
+wrapProcess sharedGroupConfig id = do
+    run <- createRunningEntry
+    when run $ finally (supervise sharedGroupConfig id) deleteRunning
+  where
+    deleteRunning = atomically $ do 
+        wcfg <- readTVar sharedGroupConfig
+        writeTVar sharedGroupConfig wcfg{
+            running=M.delete id (running wcfg)
+        }
+
+    createRunningEntry =
+        atomically $ do
+            cfg <- readTVar sharedGroupConfig
+            let specmap = spec cfg 
+            case M.lookup id specmap of
+                Nothing -> return False
+                Just target -> do
+                    let runmap = running cfg
+                    case M.lookup id runmap of
+                        Just _ -> return False
+                        Nothing -> do
+                            writeTVar sharedGroupConfig cfg{running=
+                                M.insert id (target, Nothing) runmap}
+                            return True
 
 -- |diff the requested config against the actual run state, and
 -- |do any start/kill action necessary
