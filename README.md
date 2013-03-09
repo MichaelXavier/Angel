@@ -75,7 +75,7 @@ daemons, it has been written to be very reliable:
 Building
 --------
 
- 1. Install the haskell-platform 2011 (or somehow, ghc 7.0 + 
+ 1. Install the haskell-platform (or somehow, ghc 7.0 + 
     cabal-install)
  2. Run `cabal install` in the project root (this directory)
  3. Either add the ~/.cabal/bin file to your $PATH or copy
@@ -84,7 +84,7 @@ Building
 Notes:
 
  * I have not tried building `angel` against ghc 6.10 or earlier;
-   6.12 and 7.2 are known to work
+   6.12, 7.2, 7.4, and 7.6 are known to work
 
 Testing
 -------
@@ -138,6 +138,13 @@ Then, a series of corresponding configuration commands follow:
    (optional, defaults to 5)
  * `directory` is the current working directory of the newly
    executed program (optional, defaults to angel's cwd)
+ * `logger` is another process that should be launched to handle
+   logging.  The `exec` process will have stdout and stderr
+   redirected into stdin of this process.  Recommended log
+   rotation daemons include [clog](https://github.com/jamwt/clog)
+   or [multilog](http://cr.yp.to/daemontools.html). *Note that
+   if you use a logger process, it is a configuration error
+   to specify either stdout or stderr as well.*
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
