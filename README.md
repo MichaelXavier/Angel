@@ -27,7 +27,8 @@ program specifications to run.  `angel` assumes every program listed in
 the specification file should be running at all times.
 
 `angel` starts each program, and optionally sets the program's stdout
-and stderr to some file(s) which have been opened in append mode; at
+and stderr to some file(s) which have been opened in append mode
+(or pipes stdout and stderr to some logger process); at
 this point, the program is said to be "supervised".
 
 If the program dies for any reason, `angel` waits a specified number
