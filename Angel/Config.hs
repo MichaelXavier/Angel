@@ -11,6 +11,7 @@ import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
 import Data.String.Utils (split)
 import Data.List (foldl')
+import Data.Maybe (isJust, isNothing)
 import qualified Data.Text as T
 
 import Angel.Job (syncSupervisors)
@@ -30,7 +31,7 @@ buildConfigMap cfg =
     return $! HM.foldlWithKey' addToMap M.empty $ cfg
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
-    addToMap m 
+    addToMap m
              (split "." . T.unpack -> [basekey, localkey])
              value =
         let !newprog = case M.lookup basekey m of
@@ -43,7 +44,10 @@ buildConfigMap cfg =
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
   where
-    checkProgram p = void $ when (exec p == Nothing) $ error $ name p ++ " does not have an 'exec' specification"
+    checkProgram p = do
+        when (isNothing $ exec p) $ error $ name p ++ " does not have an 'exec' specification"
+        when ((isJust $ logExec p) &&
+            (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger either stderr/stdout"
 
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
@@ -61,6 +65,9 @@ modifyProg prog "stderr" _ = error "wrong type for field 'stderr'; string requir
 
 modifyProg prog "directory" (String s) = prog{workingDir = (Just $ T.unpack s)}
 modifyProg prog "directory" _ = error "wrong type for field 'directory'; string required"
+
+modifyProg prog "logger" (String s) = prog{logExec = (Just $ T.unpack s)}
+modifyProg prog "logger" _ = error "wrong type for field 'logger'; string required"
 
 modifyProg prog n _ = prog
 

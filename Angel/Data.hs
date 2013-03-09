@@ -28,7 +28,8 @@ data Program = Program {
     delay :: Maybe Int,
     stdout :: Maybe String,
     stderr :: Maybe String,
-    workingDir :: Maybe FilePath
+    workingDir :: Maybe FilePath,
+    logExec :: Maybe String
 } deriving (Show, Eq, Ord)
 
 -- |Lower-level atoms in the configuration process
@@ -36,7 +37,7 @@ type Spec = [Program]
 
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
-defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing
+defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing
 defaultDelay = 5 :: Int
 defaultStdout = "/dev/null"
 defaultStderr = "/dev/null"

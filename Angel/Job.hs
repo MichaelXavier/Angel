@@ -73,21 +73,35 @@ supervise sharedGroupConfig id = do
               running=M.insertWith' (\n o-> n) id (my_spec, mpid) (running wcfg)
             }
                 
-        deleteRunning = atomically $ do 
-            wcfg <- readTVar sharedGroupConfig
-            writeTVar sharedGroupConfig wcfg{
-                running=M.delete id (running wcfg)
-            }
-            
         makeFiles my_spec cfg = do
-            let useout = fromMaybe defaultStdout $ stdout my_spec
-            attachOut <- UseHandle `fmap` getFile useout cfg
+            case (logExec my_spec) of
+                Just path -> logWithExec path
+                Nothing -> logWithFiles
 
-            let useerr = fromMaybe defaultStderr $ stderr my_spec
-            attachErr <- UseHandle `fmap` getFile useerr cfg
+          where
+            logWithFiles = do
+                let useout = fromMaybe defaultStdout $ stdout my_spec
+                attachOut <- UseHandle `fmap` getFile useout cfg
 
-            return $ (attachOut, attachErr)
+                let useerr = fromMaybe defaultStderr $ stderr my_spec
+                attachErr <- UseHandle `fmap` getFile useerr cfg
 
+                return $ (attachOut, attachErr)
+
+            logWithExec path = do
+                let (cmd, args) = cmdSplit path
+                
+                attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
+
+                (inPipe, _, _, p) <- createProcess (proc cmd args){
+                std_out = attachOut,
+                std_err = attachOut,
+                std_in = CreatePipe,
+                cwd = workingDir my_spec 
+                }
+
+                return $ (UseHandle (fromJust inPipe), 
+                    UseHandle (fromJust inPipe))
 
 -- |send a TERM signal to all provided process handles
 killProcesses :: [ProcessHandle] -> IO ()
