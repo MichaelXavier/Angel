@@ -140,8 +140,8 @@ Then, a series of corresponding configuration commands follow:
  * `directory` is the current working directory of the newly
    executed program (optional, defaults to angel's cwd)
  * `logger` is another process that should be launched to handle
-   logging.  The `exec` process will have stdout and stderr
-   redirected into stdin of this process.  Recommended log
+   logging.  The `exec` process will then have its stdout and stderr
+   piped into stdin of this logger.  Recommended log
    rotation daemons include [clog](https://github.com/jamwt/clog)
    or [multilog](http://cr.yp.to/daemontools.html). *Note that
    if you use a logger process, it is a configuration error
