@@ -2,7 +2,7 @@ module Angel.Config where
 
 import Control.Exception (try, SomeException)
 import qualified Data.Map as M
-import Control.Monad (when, mapM_)
+import Control.Monad (when, mapM_, (>=>))
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Data.Configurator (load, getMap, Worth(..))
@@ -76,15 +76,12 @@ modifyProg prog n _ = prog
 -- |produce a SpecKey
 processConfig :: String -> IO (Either String SpecKey)
 processConfig configPath = do 
-    mconf <- try $ load [Required configPath] >>=
-                   getMap >>=
-                   buildConfigMap >>=
-                   expandPaths >>=
-                   checkConfigValues
+    mconf <- try $ process =<< load [Required configPath]
 
     case mconf of
         Right config -> return $ Right config
         Left (e :: SomeException) -> return $ Left $ show e
+  where process = getMap >=> buildConfigMap >=> expandPaths >=> checkConfigValues
 
 
 -- |given a new SpecKey just parsed from the file, update the 
