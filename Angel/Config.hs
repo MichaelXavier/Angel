@@ -30,7 +30,7 @@ void m = m >> return ()
 -- |produce a mapping of name -> program for every program
 buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
 buildConfigMap cfg = 
-    return $! HM.foldlWithKey' addToMap M.empty $ cfg
+    return $! HM.foldlWithKey' addToMap M.empty cfg
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
     addToMap m
