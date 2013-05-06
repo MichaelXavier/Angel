@@ -6,6 +6,7 @@ import Angel.Config
 
 import Control.Exception.Base
 import Data.Configurator.Types (Value(..))
+import qualified Data.HashMap.Lazy as HM
 
 import Test.Hspec
 import qualified Test.Hspec as H (Spec)
@@ -55,4 +56,32 @@ spec = do
     it "does nothing for all other cases" $
       modifyProg prog "bogus" (String "foo") `shouldBe`
       prog
+
+  describe "expandByCount" $ do
+    it "doesn't affect empty hashes" $
+      expandByCount HM.empty `shouldBe`
+        HM.empty
+    it "doesn't affect hashes without counts" $
+      expandByCount (HM.fromList [baseProgPair]) `shouldBe`
+        HM.fromList [baseProgPair]
+    it "errors on mistyped count field" $
+      evaluate (expandByCount (HM.fromList [baseProgPair
+                                           , ("prog.count", String "wat")])) `shouldThrow`
+        anyErrorCall
+    it "errors on negative count field" $
+      evaluate (expandByCount (HM.fromList [ baseProgPair
+                                           , ("prog.count", Number (-1))])) `shouldThrow`
+        anyErrorCall
+    it "errors on zero count field" $
+      evaluate (expandByCount (HM.fromList [ baseProgPair
+                                           , ("prog.count", Number 0)])) `shouldThrow`
+        anyErrorCall
+    it "expands with a count of 1" $
+      expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 1)]) `shouldBe`
+        HM.fromList [("prog-1.exec", String "foo")]
+    it "expands with a count of > 1" $
+      expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 2)]) `shouldBe`
+        HM.fromList [ ("prog-1.exec", String "foo")
+                    , ("prog-2.exec", String "foo")]
   where prog = defaultProgram
+        baseProgPair = ("prog.exec", (String "foo"))

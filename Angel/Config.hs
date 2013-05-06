@@ -9,9 +9,11 @@ import Data.Configurator (load, getMap, Worth(..))
 import Data.Configurator.Types (Config, Value(..), Name)
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
+import Data.Ratio (truncate)
 import Data.String.Utils (split)
 import Data.List (foldl')
 import Data.Maybe (isJust, isNothing)
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 
 import Angel.Job (syncSupervisors)
@@ -81,8 +83,39 @@ processConfig configPath = do
     case mconf of
         Right config -> return $ Right config
         Left (e :: SomeException) -> return $ Left $ show e
-  where process = getMap >=> buildConfigMap >=> expandPaths >=> checkConfigValues
+  where process = getMap                 >=>
+                  return . expandByCount >=>
+                  buildConfigMap         >=>
+                  expandPaths            >=>
+                  checkConfigValues
 
+expandByCount :: HM.HashMap Name Value -> HM.HashMap Name Value
+expandByCount cfg = HM.unions expanded
+  where expanded :: [HM.HashMap Name Value]
+        expanded         = concat $ HM.foldlWithKey' expand' [] groupedByProgram
+        expand'  :: [[HM.HashMap Name Value]] -> Name -> HM.HashMap Name Value -> [[HM.HashMap Name Value]]
+        expand' acc      = fmap (:acc) . expand
+        groupedByProgram :: HM.HashMap Name (HM.HashMap Name Value)
+        groupedByProgram = HM.foldlWithKey' binByProg HM.empty cfg
+        binByProg h
+                  (T.split (== '.') -> [prog, k])
+                  v     = HM.insertWith HM.union prog (HM.singleton k v) h
+        binByProg h _ _ = h
+        expand :: Name -> HM.HashMap Name Value -> [HM.HashMap Name Value]
+        expand prog pcfg = maybe [reflatten prog pcfg]
+                                 expandWithCount
+                                 HM.lookup "count" pcfg
+          where expandWithCount (Number n)
+                  | n > 0     = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
+                  | otherwise = error "count must be > 0"
+                expandWithCount _ = error "count must be a number or not specified"
+                genProgName i     = prog <> "-" <> (T.pack . show . truncate $ i)
+
+reflatten :: Name -> HM.HashMap Name Value -> HM.HashMap Name Value
+reflatten prog pcfg = HM.fromList asList
+  where asList            = map prependKey $ filter notCount $ HM.toList pcfg
+        prependKey (k, v) = ((prog <> "." <> k), v)
+        notCount          = not . (== "count") . fst
 
 -- |given a new SpecKey just parsed from the file, update the 
 -- |shared state TVar
