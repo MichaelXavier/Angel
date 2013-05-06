@@ -89,6 +89,7 @@ processConfig configPath = do
                   expandPaths            >=>
                   checkConfigValues
 
+-- |preprocess config into multiple programs if "count" is specified
 expandByCount :: HM.HashMap Name Value -> HM.HashMap Name Value
 expandByCount cfg = HM.unions expanded
   where expanded :: [HM.HashMap Name Value]

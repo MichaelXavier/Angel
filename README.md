@@ -123,6 +123,12 @@ A basic configuration file might look like this:
         delay = 7
     }
 
+    workers {
+        directory = "/path/to/worker"
+        exec      = "run_worker"
+        count     = 30
+    }
+
 Each program that should be supervised starts a `program-id` block:
 
     watch-date {
@@ -146,6 +152,9 @@ Then, a series of corresponding configuration commands follow:
    or [multilog](http://cr.yp.to/daemontools.html). *Note that
    if you use a logger process, it is a configuration error
    to specify either stdout or stderr as well.*
+ * `count` is an optional argument to specify the number of processes to spawn.
+   For instance, if you specified a count of 2, it will spawn the program
+   twice, internally as `workers-1` and `workers-2`, for example.
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
@@ -209,6 +218,9 @@ As you can see, the config monitor reloaded on HUP, and then the
 process monitor marked the watch-date process for killing.  TERM
 was sent to the child process, and then the supervisor loop QUIT
 because the watch-date program no longer had a config entry.
+
+This also works for when you specify count. Incrementing/decrementing the count
+will intelligently shut down excess processes and spin new ones up.
 
 Advanced Configuration
 ----------------------
