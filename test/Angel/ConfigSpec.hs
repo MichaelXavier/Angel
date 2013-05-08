@@ -73,9 +73,9 @@ spec = do
                                            , ("prog.count", Number (-1))])) `shouldThrow`
         anyErrorCall
     it "errors on zero count field" $
-      evaluate (expandByCount (HM.fromList [ baseProgPair
-                                           , ("prog.count", Number 0)])) `shouldThrow`
-        anyErrorCall
+      expandByCount (HM.fromList [ baseProgPair
+                                 , ("prog.count", Number 0)]) `shouldBe`
+        HM.empty
     it "expands with a count of 1" $
       expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 1)]) `shouldBe`
         HM.fromList [("prog-1.exec", String "foo")]

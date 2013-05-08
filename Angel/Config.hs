@@ -106,10 +106,11 @@ expandByCount cfg = HM.unions expanded
                                  expandWithCount
                                  (HM.lookup "count" pcfg)
           where expandWithCount (Number n)
-                  | n > 0     = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
-                  | otherwise = error "count must be > 0"
+                  | n >= 0    = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
+                  | otherwise = error "count must be >= 0"
                 expandWithCount _ = error "count must be a number or not specified"
-                genProgName i     = prog <> "-" <> (T.pack . show . truncate $ i)
+                genProgName i     = prog <> "-" <> progNumber
+                  where progNumber = T.pack . show . truncate $ i
 
 reflatten :: Name -> HM.HashMap Name Value -> HM.HashMap Name Value
 reflatten prog pcfg = HM.fromList asList
