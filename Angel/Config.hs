@@ -9,7 +9,6 @@ import Data.Configurator (load, getMap, Worth(..))
 import Data.Configurator.Types (Config, Value(..), Name)
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
-import Data.Ratio (truncate)
 import Data.String.Utils (split)
 import Data.List (foldl')
 import Data.Maybe (isJust, isNothing)
@@ -105,7 +104,7 @@ expandByCount cfg = HM.unions expanded
         expand :: Name -> HM.HashMap Name Value -> [HM.HashMap Name Value]
         expand prog pcfg = maybe [reflatten prog pcfg]
                                  expandWithCount
-                                 HM.lookup "count" pcfg
+                                 (HM.lookup "count" pcfg)
           where expandWithCount (Number n)
                   | n > 0     = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
                   | otherwise = error "count must be > 0"
