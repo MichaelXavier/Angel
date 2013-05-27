@@ -53,6 +53,13 @@ spec = do
       evaluate (modifyProg prog "directory" (Bool True)) `shouldThrow`
       anyErrorCall
 
+    it "modifies pidfile" $
+      modifyProg prog "pidfile" (String "foo.pid") `shouldBe`
+      prog { pidFile = Just "foo.pid"}
+    it "errors for non-string path" $
+      evaluate (modifyProg prog "pidfile" (Bool True)) `shouldThrow`
+      anyErrorCall
+
     it "does nothing for all other cases" $
       modifyProg prog "bogus" (String "foo") `shouldBe`
       prog
