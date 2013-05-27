@@ -109,11 +109,20 @@ expandByCount cfg = HM.unions expanded
                                  expandWithCount
                                  (HM.lookup "count" pcfg)
           where expandWithCount (Number n)
-                  | n >= 0    = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
+                  | n >= 0    = [ reflatten (genProgName i) (rewriteConfig i pcfg) | i <- [1..n] ]
                   | otherwise = error "count must be >= 0"
                 expandWithCount _ = error "count must be a number or not specified"
-                genProgName i     = prog <> "-" <> progNumber
-                  where progNumber = T.pack . show . truncate $ i
+                genProgName i     = prog <> "-" <> textNumber i
+
+rewriteConfig :: Rational -> HM.HashMap Name Value -> HM.HashMap Name Value
+rewriteConfig n = HM.adjust rewritePidfile "pidfile"
+  where rewritePidfile (String path) = String $ rewrittenFilename <> extension
+          where rewrittenFilename     = filename <> "-" <> textNumber n
+                (filename, extension) = T.breakOn "." path
+        rewritePidfile x              = x
+
+textNumber :: Rational -> T.Text
+textNumber = T.pack . show . truncate
 
 reflatten :: Name -> HM.HashMap Name Value -> HM.HashMap Name Value
 reflatten prog pcfg = HM.fromList asList
