@@ -70,6 +70,9 @@ modifyProg prog "directory" _ = error "wrong type for field 'directory'; string 
 modifyProg prog "logger" (String s) = prog{logExec = (Just $ T.unpack s)}
 modifyProg prog "logger" _ = error "wrong type for field 'logger'; string required"
 
+modifyProg prog "pidfile" (String s) = prog{pidFile = (Just $ T.unpack s)}
+modifyProg prog "pidfile" _ = error "wrong type for field 'pidfile'; string required"
+
 modifyProg prog n _ = prog
 
 
@@ -150,8 +153,10 @@ expandProgramPaths prog = do exec'       <- maybeExpand $ exec prog
                              stdout'     <- maybeExpand $ stdout prog
                              stderr'     <- maybeExpand $ stderr prog
                              workingDir' <- maybeExpand $ workingDir prog
+                             pidFile'    <- maybeExpand $ pidFile prog
                              return prog { exec       = exec',
                                            stdout     = stdout',
                                            stderr     = stderr',
-                                           workingDir = workingDir'}
+                                           workingDir = workingDir',
+                                           pidFile    = pidFile' }
     where maybeExpand = T.traverse expandPath

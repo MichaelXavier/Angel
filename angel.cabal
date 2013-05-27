@@ -67,7 +67,8 @@ Executable angel
   
   -- Packages needed in order to build this package.
   Build-depends: base >= 4.0 && < 5
-  Build-depends: process >= 1.0
+  -- binding to the internals of process here, gotta be careful
+  Build-depends: process >= 1.0 && < 2.0
   Build-depends: mtl
   Build-depends: MissingH
   Build-depends: configurator >= 0.1
