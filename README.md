@@ -253,6 +253,13 @@ Unix process management conventions.
 Currently, the only way to achieve this is by employing the "commenting
 out" method illustrated above.
 
+CHANGELOG
+---------
+### 0.4.1
+
+* Add `count` option to program spec to launch multiple instances of a program.
+
+
 Author
 ------
 
