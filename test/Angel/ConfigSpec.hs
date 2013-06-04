@@ -53,6 +53,13 @@ spec = do
       evaluate (modifyProg prog "directory" (Bool True)) `shouldThrow`
       anyErrorCall
 
+    it "modifies pidfile" $
+      modifyProg prog "pidfile" (String "foo.pid") `shouldBe`
+      prog { pidFile = Just "foo.pid"}
+    it "errors for non-string path" $
+      evaluate (modifyProg prog "pidfile" (Bool True)) `shouldThrow`
+      anyErrorCall
+
     it "does nothing for all other cases" $
       modifyProg prog "bogus" (String "foo") `shouldBe`
       prog
@@ -83,5 +90,11 @@ spec = do
       expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 2)]) `shouldBe`
         HM.fromList [ ("prog-1.exec", String "foo")
                     , ("prog-2.exec", String "foo")]
+    it "expands pidfiles with a count of 1" $
+      expandByCount (HM.fromList [ baseProgPair
+                                 , ("prog.count", Number 1)
+                                 , ("prog.pidfile", String "foo.pid")]) `shouldBe`
+        HM.fromList [ ("prog-1.exec", String "foo")
+                    , ("prog-1.pidfile", String "foo-1.pid")] --TODO: try without expanding if count == 1
   where prog = defaultProgram
         baseProgPair = ("prog.exec", (String "foo"))

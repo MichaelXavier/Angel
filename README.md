@@ -127,6 +127,7 @@ A basic configuration file might look like this:
         directory = "/path/to/worker"
         exec      = "run_worker"
         count     = 30
+        pidfile   = "/path/to/pidfile.pid"
     }
 
 Each program that should be supervised starts a `program-id` block:
@@ -155,6 +156,9 @@ Then, a series of corresponding configuration commands follow:
  * `count` is an optional argument to specify the number of processes to spawn.
    For instance, if you specified a count of 2, it will spawn the program
    twice, internally as `workers-1` and `workers-2`, for example.
+ * `pidfile` is an optional argument to specify where a pidfile should be
+   created. If you don't specify an absolute path, it will use the running
+   directory of angel.
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:

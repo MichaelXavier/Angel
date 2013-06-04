@@ -70,6 +70,9 @@ modifyProg prog "directory" _ = error "wrong type for field 'directory'; string 
 modifyProg prog "logger" (String s) = prog{logExec = (Just $ T.unpack s)}
 modifyProg prog "logger" _ = error "wrong type for field 'logger'; string required"
 
+modifyProg prog "pidfile" (String s) = prog{pidFile = (Just $ T.unpack s)}
+modifyProg prog "pidfile" _ = error "wrong type for field 'pidfile'; string required"
+
 modifyProg prog n _ = prog
 
 
@@ -106,11 +109,20 @@ expandByCount cfg = HM.unions expanded
                                  expandWithCount
                                  (HM.lookup "count" pcfg)
           where expandWithCount (Number n)
-                  | n >= 0    = [ reflatten (genProgName i) pcfg | i <- [1..n] ]
+                  | n >= 0    = [ reflatten (genProgName i) (rewriteConfig i pcfg) | i <- [1..n] ]
                   | otherwise = error "count must be >= 0"
                 expandWithCount _ = error "count must be a number or not specified"
-                genProgName i     = prog <> "-" <> progNumber
-                  where progNumber = T.pack . show . truncate $ i
+                genProgName i     = prog <> "-" <> textNumber i
+
+rewriteConfig :: Rational -> HM.HashMap Name Value -> HM.HashMap Name Value
+rewriteConfig n = HM.adjust rewritePidfile "pidfile"
+  where rewritePidfile (String path) = String $ rewrittenFilename <> extension
+          where rewrittenFilename     = filename <> "-" <> textNumber n
+                (filename, extension) = T.breakOn "." path
+        rewritePidfile x              = x
+
+textNumber :: Rational -> T.Text
+textNumber = T.pack . show . truncate
 
 reflatten :: Name -> HM.HashMap Name Value -> HM.HashMap Name Value
 reflatten prog pcfg = HM.fromList asList
@@ -150,8 +162,10 @@ expandProgramPaths prog = do exec'       <- maybeExpand $ exec prog
                              stdout'     <- maybeExpand $ stdout prog
                              stderr'     <- maybeExpand $ stderr prog
                              workingDir' <- maybeExpand $ workingDir prog
+                             pidFile'    <- maybeExpand $ pidFile prog
                              return prog { exec       = exec',
                                            stdout     = stdout',
                                            stderr     = stderr',
-                                           workingDir = workingDir'}
+                                           workingDir = workingDir',
+                                           pidFile    = pidFile' }
     where maybeExpand = T.traverse expandPath
