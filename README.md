@@ -259,6 +259,10 @@ out" method illustrated above.
 
 CHANGELOG
 ---------
+### 0.4.2
+
+* Add `pidfile` option to program spec to specify a pidfile location.
+
 ### 0.4.1
 
 * Add `count` option to program spec to launch multiple instances of a program.
