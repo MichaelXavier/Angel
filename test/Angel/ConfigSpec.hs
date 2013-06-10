@@ -79,7 +79,7 @@ spec = do
       evaluate (expandByCount (HM.fromList [ baseProgPair
                                            , ("prog.count", Number (-1))])) `shouldThrow`
         anyErrorCall
-    it "errors on zero count field" $
+    it "generates no configs with a count of 0" $
       expandByCount (HM.fromList [ baseProgPair
                                  , ("prog.count", Number 0)]) `shouldBe`
         HM.empty

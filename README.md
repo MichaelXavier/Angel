@@ -254,8 +254,8 @@ Unix process management conventions.
 
 **How can I take a service down without wiping out its configuration?**
 
-Currently, the only way to achieve this is by employing the "commenting
-out" method illustrated above.
+Specify a `count` of 0 for the process. That will kill any running processes
+but still let you keep it in the config file.
 
 CHANGELOG
 ---------
