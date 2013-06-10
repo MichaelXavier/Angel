@@ -37,9 +37,9 @@ Description:    @angel@ is a daemon that runs and monitors other processes.  It
 
 -- An email address to which users can send suggestions, bug reports,
 -- and patches.
-Maintainer:          jamie@bu.mp
+Maintainer:          Michael Xavier <michael@michaelxavier.net>
 
-Homepage:            http://github.com/jamwt/Angel
+Homepage:            http://github.com/MichaelXavier/Angel
 
 -- A copyright notice.
 -- Copyright:           
@@ -59,7 +59,7 @@ Cabal-version:       >=1.6
 
 source-repository head
     type: git
-    location: https://github.com/jamwt/Angel.git
+    location: https://github.com/MichaelXavier/Angel.git
 
 Executable angel
   -- .hs or .lhs file containing the Main module.
