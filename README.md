@@ -1,5 +1,6 @@
 Angel
 =====
+[![Build Status](https://travis-ci.org/MichaelXavier/Angel.png?branch=master)](https://travis-ci.org/MichaelXavier/Angel)
 
 `angel` is a daemon that runs and monitors other processes.  It
 is similar to djb's `daemontools` or the Ruby project `god`.
