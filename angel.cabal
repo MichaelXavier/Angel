@@ -54,7 +54,7 @@ Build-type:          Simple
 Extra-source-files:  README.md
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.6
+Cabal-version:       >=1.8
 
 
 source-repository head
