@@ -103,5 +103,16 @@ test-suite spec
   Hs-Source-Dirs: ., test
   Build-Depends:  base
   Build-Depends:  hspec
-  Build-depends:  time
+  Build-depends: base >= 4.0 && < 5
+  Build-depends: process >= 1.0 && < 2.0
+  Build-depends: mtl
+  Build-depends: MissingH
+  Build-depends: configurator >= 0.1
+  Build-depends: stm >= 2.0
+  Build-depends: containers >= 0.3
+  Build-depends: unordered-containers >= 0.1.4
+  Build-depends: unix >= 2.4
+  Build-depends: time
+  Build-depends: old-locale
+  Build-depends: text>=0.11
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
