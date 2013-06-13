@@ -1,4 +1,4 @@
-module Main where 
+module Main (main) where 
 
 import Control.Concurrent (threadDelay, forkIO, forkOS)
 import Control.Concurrent
@@ -8,8 +8,9 @@ import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Control.Concurrent.STM.TChan (newTChan)
 import Control.Monad (unless, when, forever)
 import System.Environment (getArgs)
+import System.Exit (exitFailure, exitSuccess)
 import System.Posix.Signals
-import System.IO (hSetBuffering, BufferMode(..), stdout, stderr)
+import System.IO (hSetBuffering, hPutStrLn, BufferMode(..), stdout, stderr)
 
 import qualified Data.Map as M
 
@@ -27,16 +28,26 @@ handleHup wakeSig = atomically $ writeTVar wakeSig $ Just 1
 handleExit :: MVar Bool -> IO ()
 handleExit mv = putMVar mv True
 
-main = do 
+main :: IO ()
+main = handleArgs =<< getArgs
+
+handleArgs :: [String] -> IO ()
+handleArgs ["--help"]   = printHelp
+handleArgs ["-h"]       = printHelp
+handleArgs []           = printHelp
+handleArgs [configPath] = runWithConfigPath configPath
+handleArgs _            = errorExit "expected a single config file. Run with --help for usasge."
+
+printHelp :: IO ()
+printHelp = putStrLn "Usage: angel [--help] CONFIG_FILE" >> exitSuccess
+
+runWithConfigPath :: FilePath -> IO ()
+runWithConfigPath configPath = do
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr LineBuffering
     let log = logger "main" 
     log "Angel started"
-    args <- getArgs
 
-    -- Exactly one argument required for the `angel` executable
-    unless (length args == 1) $ error "exactly one argument required: config file"
-    let configPath = head args
     log $ "Using config file: " ++ configPath
 
     -- Create the TVar that represents the "global state" of running applications
@@ -69,3 +80,6 @@ main = do
     log "  2. Forcing sync to kill running going"
     syncSupervisors sharedGroupConfig
     log "That's all folks!"
+
+errorExit :: String -> IO ()
+errorExit msg = hPutStrLn stderr msg >> exitFailure
