@@ -89,6 +89,7 @@ Executable angel
                  Angel.Job,
                  Angel.Log,
                  Angel.Util
+                 Angel.PidFile
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
