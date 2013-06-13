@@ -260,6 +260,10 @@ but still let you keep it in the config file.
 
 CHANGELOG
 ---------
+### 0.4.3
+
+* Fix install failure from pidfile module not being accounted for.
+
 ### 0.4.2
 
 * Add `pidfile` option to program spec to specify a pidfile location.
