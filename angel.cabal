@@ -63,6 +63,7 @@ source-repository head
 
 Executable angel
   -- .hs or .lhs file containing the Main module.
+  Hs-Source-Dirs: src
   Main-is: Angel/Main.hs
   
   -- Packages needed in order to build this package.
@@ -101,7 +102,7 @@ Executable angel
 test-suite spec
   Type:           exitcode-stdio-1.0
   Main-Is:        Spec.hs
-  Hs-Source-Dirs: ., test
+  Hs-Source-Dirs: src, test
   Build-Depends:  base
   Build-Depends:  hspec
   Build-depends: base >= 4.0 && < 5
