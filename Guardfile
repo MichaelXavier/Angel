@@ -5,9 +5,9 @@ guard :shell do
 
   def ncmd(cmd, msg = cmd)
     if system(cmd)
-      n "#{msg} SUCCEEDED"
+      n msg, "Success!"
     else
-      n "#{msg} FAILED"
+      n msg, "Failed"
     end
   end
  
