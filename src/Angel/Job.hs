@@ -12,8 +12,9 @@ import qualified Data.Map as M
 import Control.Monad (unless, when, forever)
 
 import Angel.Log (logger)
-import Angel.Data
-import Angel.Util (sleepSecs)
+import Angel.Data hiding (env)
+import qualified Angel.Data as D
+import Angel.Util (sleepSecs, nnull)
 import Angel.Files (getFile)
 import Angel.PidFile (startMaybeWithPidFile, clearPIDFile)
 
@@ -98,10 +99,11 @@ supervise sharedGroupConfig id = do
                 attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
 
                 (inPipe, _, _, p) <- createProcess (proc cmd args){
-                std_out = attachOut,
-                std_err = attachOut,
-                std_in = CreatePipe,
-                cwd = workingDir my_spec 
+                  std_out = attachOut,
+                  std_err = attachOut,
+                  std_in  = CreatePipe,
+                  cwd     = workingDir my_spec,
+                  env     = Just $ D.env my_spec
                 }
 
                 return $ (UseHandle (fromJust inPipe), 
@@ -184,7 +186,3 @@ mustKill cfg = unzip targets
 -- |issues on reload
 pollStale :: TVar GroupConfig -> IO ()
 pollStale sharedGroupConfig = forever $ sleepSecs 10 >> syncSupervisors sharedGroupConfig
-
-
-nnull :: [a] -> Bool
-nnull = not . null

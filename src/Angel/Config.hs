@@ -1,3 +1,7 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Angel.Config where
 
 import Control.Exception (try, SomeException)
@@ -11,36 +15,39 @@ import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
 import Data.String.Utils (split)
 import Data.List (foldl')
-import Data.Maybe (isJust, isNothing)
+import Data.Maybe (isJust, isNothing, fromMaybe)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 
 import Angel.Job (syncSupervisors)
 import Angel.Data
 import Angel.Log (logger)
-import Angel.Util (waitForWake,
-                   expandPath)
+import Angel.Util (waitForWake
+                  , nnull
+                  , expandPath)
 
-import Debug.Trace (trace)
+import Debug.Trace (trace, traceShow)
 
 void :: Monad m => m a -> m ()
 void m = m >> return ()
 
 -- |produce a mapping of name -> program for every program
+--TODO: testme
+--TODO: why is this IO?
 buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
-buildConfigMap cfg = 
+buildConfigMap cfg = do
     return $! HM.foldlWithKey' addToMap M.empty cfg
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
-    addToMap m
-             (split "." . T.unpack -> [basekey, localkey])
-             value =
+    addToMap m name value
+      | nnull basekey && nnull localkey = 
         let !newprog = case M.lookup basekey m of
                           Just prog -> modifyProg prog localkey value
-                          Nothing   -> modifyProg defaultProgram{name=basekey} localkey value
+                          Nothing   -> modifyProg defaultProgram {name = basekey, env = []} localkey value
             in
         M.insert basekey newprog m
-    addToMap m _ _ = m
+      | otherwise = m
+      where (basekey, '.':localkey) = break (== '.') $ T.unpack name
 
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
@@ -72,6 +79,10 @@ modifyProg prog "logger" _ = error "wrong type for field 'logger'; string requir
 
 modifyProg prog "pidfile" (String s) = prog{pidFile = (Just $ T.unpack s)}
 modifyProg prog "pidfile" _ = error "wrong type for field 'pidfile'; string required"
+
+modifyProg prog envkey@('e':'n':'v':'.':_) (String s) = prog{env = env'}
+  where env'      = (envkey, T.unpack s):(env prog)
+modifyProg prog ('e':'n':'v':'.':_) _ = error "wrong type for env field; string required"
 
 modifyProg prog n _ = prog
 
@@ -115,9 +126,11 @@ expandByCount cfg = HM.unions expanded
                 genProgName i     = prog <> "-" <> textNumber i
 
 rewriteConfig :: Rational -> HM.HashMap Name Value -> HM.HashMap Name Value
-rewriteConfig n = HM.adjust rewritePidfile "pidfile"
-  where rewritePidfile (String path) = String $ rewrittenFilename <> extension
-          where rewrittenFilename     = filename <> "-" <> textNumber n
+rewriteConfig n = HM.insert "env.ANGEL_PROCESS_NUMBER" procNumber . HM.adjust rewritePidfile "pidfile"
+  where procNumber                   = String n'
+        n'                           = textNumber n
+        rewritePidfile (String path) = String $ rewrittenFilename <> extension
+          where rewrittenFilename     = filename <> "-" <> n'
                 (filename, extension) = T.breakOn "." path
         rewritePidfile x              = x
 

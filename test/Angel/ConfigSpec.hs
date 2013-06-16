@@ -85,16 +85,20 @@ spec = do
         HM.empty
     it "expands with a count of 1" $
       expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 1)]) `shouldBe`
-        HM.fromList [("prog-1.exec", String "foo")]
+        HM.fromList [ ("prog-1.exec", String "foo")
+                    , ("prog-1.env.ANGEL_PROCESS_NUMBER", String "1")]
     it "expands with a count of > 1" $
       expandByCount (HM.fromList [baseProgPair, ("prog.count", Number 2)]) `shouldBe`
         HM.fromList [ ("prog-1.exec", String "foo")
-                    , ("prog-2.exec", String "foo")]
+                    , ("prog-1.env.ANGEL_PROCESS_NUMBER", String "1")
+                    , ("prog-2.exec", String "foo")
+                    , ("prog-2.env.ANGEL_PROCESS_NUMBER", String "2")]
     it "expands pidfiles with a count of 1" $
       expandByCount (HM.fromList [ baseProgPair
                                  , ("prog.count", Number 1)
                                  , ("prog.pidfile", String "foo.pid")]) `shouldBe`
         HM.fromList [ ("prog-1.exec", String "foo")
+                    , ("prog-1.env.ANGEL_PROCESS_NUMBER", String "1")
                     , ("prog-1.pidfile", String "foo-1.pid")] --TODO: try without expanding if count == 1
   where prog = defaultProgram
         baseProgPair = ("prog.exec", (String "foo"))

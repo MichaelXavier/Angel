@@ -1,5 +1,8 @@
 -- |various utility functions
-module Angel.Util where
+module Angel.Util ( sleepSecs
+                  , waitForWake
+                  , expandPath
+                  , nnull) where
 
 import Control.Concurrent
 import Control.Concurrent.STM
@@ -30,3 +33,6 @@ expandPath ('~':rest) = do home <- getHome =<< getUser
                                      else return userName
         getHome user             = homeDirectory `fmap` getUserEntryForName user
 expandPath path = return path
+
+nnull :: [a] -> Bool
+nnull = not . null

@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Angel.Files (getFile, startFileManager) where
 
 import Control.Exception (try, SomeException)

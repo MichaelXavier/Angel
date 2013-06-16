@@ -7,10 +7,13 @@ guard :shell do
 
   def ncmd(cmd, msg = cmd)
     output = `#{cmd}`
+    puts output
+    summary = output.lines.grep(/examples/).first
+
     if $?.success?
-      n "Build Success!"
+      n "Build Success!", summary
     else
-      n "Failed", output.lines.grep(/examples/).first
+      n "Failed", summary
     end
   end
  
