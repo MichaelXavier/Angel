@@ -57,6 +57,7 @@ checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
         when ((isJust $ logExec p) &&
             (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger process and stderr/stdout"
 
+--TODO: specme
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
 modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"
@@ -80,8 +81,8 @@ modifyProg prog "logger" _ = error "wrong type for field 'logger'; string requir
 modifyProg prog "pidfile" (String s) = prog{pidFile = (Just $ T.unpack s)}
 modifyProg prog "pidfile" _ = error "wrong type for field 'pidfile'; string required"
 
-modifyProg prog envkey@('e':'n':'v':'.':_) (String s) = prog{env = env'}
-  where env'      = (envkey, T.unpack s):(env prog)
+modifyProg prog ('e':'n':'v':'.':envVar) (String s) = prog{env = envVar'}
+  where envVar' = (envVar, T.unpack s):(env prog)
 modifyProg prog ('e':'n':'v':'.':_) _ = error "wrong type for env field; string required"
 
 modifyProg prog n _ = prog
@@ -111,10 +112,11 @@ expandByCount cfg = HM.unions expanded
         expand' acc      = fmap (:acc) . expand
         groupedByProgram :: HM.HashMap Name (HM.HashMap Name Value)
         groupedByProgram = HM.foldlWithKey' binByProg HM.empty cfg
-        binByProg h
-                  (T.split (== '.') -> [prog, k])
-                  v     = HM.insertWith HM.union prog (HM.singleton k v) h
-        binByProg h _ _ = h
+        binByProg h fullKey v
+          | prog /= "" && localKey /= "" = HM.insertWith HM.union prog (HM.singleton localKey v) h
+          | otherwise                    = h
+          where (prog, localKeyWithLeadingDot) = T.breakOn "." fullKey
+                localKey                 = T.drop 1 localKeyWithLeadingDot
         expand :: Name -> HM.HashMap Name Value -> [HM.HashMap Name Value]
         expand prog pcfg = maybe [reflatten prog pcfg]
                                  expandWithCount
@@ -161,7 +163,6 @@ monitorConfig configPath sharedGroupConfig wakeSig = do
             log $ " <<<< Config Error >>>>\n" ++ e
             log " <<<< Config Error: Skipping reload >>>>"
         Right spec -> do 
-            print spec
             atomically $ updateSpecConfig sharedGroupConfig spec
             syncSupervisors sharedGroupConfig
     waitForWake wakeSig

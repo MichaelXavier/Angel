@@ -93,6 +93,10 @@ spec = do
                     , ("prog-1.env.ANGEL_PROCESS_NUMBER", String "1")
                     , ("prog-2.exec", String "foo")
                     , ("prog-2.env.ANGEL_PROCESS_NUMBER", String "2")]
+    it "preserves explicit env variables" $
+      expandByCount (HM.fromList [baseProgPair, ("prog.env.FOO", String "bar")]) `shouldBe`
+        HM.fromList [ ("prog.exec",    String "foo")
+                    , ("prog.env.FOO", String "bar")]
     it "expands pidfiles with a count of 1" $
       expandByCount (HM.fromList [ baseProgPair
                                  , ("prog.count", Number 1)

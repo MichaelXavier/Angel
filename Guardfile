@@ -1,5 +1,3 @@
-require 'shellwords'
-
 guard :shell do
   watch(%r{.*\.cabal$}) do
     ncmd("cabal build && cabal test")

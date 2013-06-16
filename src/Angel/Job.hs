@@ -26,7 +26,6 @@ ifEmpty s ioa iob = if s == "" then ioa else iob
 -- |re-examine the desired run config to determine whether to re-run it.  if so,
 -- |tail call.
 supervise sharedGroupConfig id = do 
-    let log = logger $ "- program: " ++ id ++ " -"
     log "START"
     cfg <- atomically $ readTVar sharedGroupConfig
     let my_spec = find_me cfg
@@ -42,9 +41,13 @@ supervise sharedGroupConfig id = do
             let procSpec = (proc cmd args) {
               std_out = attachOut,
               std_err = attachErr,
-              cwd = workingDir my_spec
+              cwd = workingDir my_spec,
+              env = Just $ D.env my_spec
             }
+
             let mPfile = pidFile my_spec
+
+            log $ "Spawning process with env " ++ show (env procSpec)
 
             
             startMaybeWithPidFile procSpec mPfile $ \pHandle -> do
@@ -68,6 +71,7 @@ supervise sharedGroupConfig id = do
         )
         
     where
+        log = logger $ "- program: " ++ id ++ " -"
         cmdSplit fullcmd = (head parts, tail parts) 
             where parts = (filter (/="") . map strip . split " ") fullcmd
 
@@ -98,12 +102,12 @@ supervise sharedGroupConfig id = do
                 
                 attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
 
+                log "Spawning process"
                 (inPipe, _, _, p) <- createProcess (proc cmd args){
                   std_out = attachOut,
                   std_err = attachOut,
                   std_in  = CreatePipe,
-                  cwd     = workingDir my_spec,
-                  env     = Just $ D.env my_spec
+                  cwd     = workingDir my_spec
                 }
 
                 return $ (UseHandle (fromJust inPipe), 
