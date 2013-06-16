@@ -19,7 +19,7 @@ guard :shell do
     ncmd("ghc -isrc -itest -e 'hspec spec' test/**/*.hs test/Spec.hs")
   end
 
-  watch(%r{(Angel/.+)\.hs$}) do |m|
+  watch(%r{(src/.+)\.hs$}) do |m|
     run_all_tests
   end
  
