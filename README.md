@@ -129,6 +129,10 @@ A basic configuration file might look like this:
         exec      = "run_worker"
         count     = 30
         pidfile   = "/path/to/pidfile.pid"
+        env {
+          FOO = "BAR"
+          BAR = "BAZ"
+        }
     }
 
 Each program that should be supervised starts a `program-id` block:
@@ -156,10 +160,14 @@ Then, a series of corresponding configuration commands follow:
    to specify either stdout or stderr as well.*
  * `count` is an optional argument to specify the number of processes to spawn.
    For instance, if you specified a count of 2, it will spawn the program
-   twice, internally as `workers-1` and `workers-2`, for example.
+   twice, internally as `workers-1` and `workers-2`, for example. Note that
+   `count` will inject the environment variable `ANGEL_PROCESS_NUMBER` into the
+   child process' environment variable.
  * `pidfile` is an optional argument to specify where a pidfile should be
    created. If you don't specify an absolute path, it will use the running
    directory of angel.
+ * `env` is a nested config of string key/value pairs. Non-string values are
+   invalid.
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
@@ -260,6 +268,7 @@ but still let you keep it in the config file.
 
 CHANGELOG
 ---------
+
 ### 0.4.3
 
 * Fix install failure from pidfile module not being accounted for.
