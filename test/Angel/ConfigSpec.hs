@@ -60,6 +60,16 @@ spec = do
       evaluate (modifyProg prog "pidfile" (Bool True)) `shouldThrow`
       anyErrorCall
 
+    it "appends env to the empty list" $
+      modifyProg prog "env.foo" (String "bar") `shouldBe`
+      prog { env = [("foo", "bar")]}
+    it "errors for non-string value" $
+      evaluate (modifyProg prog "env.foo" (Bool True)) `shouldThrow`
+      anyErrorCall
+    it "prepends env to an existing list" $
+      modifyProg prog { env = [("previous", "value")]} "env.foo" (String "bar") `shouldBe`
+      prog { env = [("foo", "bar"), ("previous", "value")]}
+
     it "does nothing for all other cases" $
       modifyProg prog "bogus" (String "foo") `shouldBe`
       prog

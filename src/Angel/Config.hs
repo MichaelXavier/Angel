@@ -32,8 +32,6 @@ void :: Monad m => m a -> m ()
 void m = m >> return ()
 
 -- |produce a mapping of name -> program for every program
---TODO: testme
---TODO: why is this IO?
 buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
 buildConfigMap cfg = do
     return $! HM.foldlWithKey' addToMap M.empty cfg
@@ -57,7 +55,6 @@ checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
         when ((isJust $ logExec p) &&
             (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger process and stderr/stdout"
 
---TODO: specme
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
 modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"

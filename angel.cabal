@@ -97,7 +97,7 @@ Executable angel
 
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   
-  Ghc-Options: -threaded 
+  Ghc-Options: -threaded -fwarn-missing-import-lists
 
 test-suite spec
   Type:           exitcode-stdio-1.0
