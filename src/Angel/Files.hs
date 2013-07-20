@@ -1,14 +1,23 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-module Angel.Files (getFile, startFileManager) where
+module Angel.Files ( getFile
+                   , startFileManager ) where
 
-import Control.Exception (try, SomeException)
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TChan (readTChan, writeTChan, TChan, newTChan, newTChanIO)
+import Control.Exception ( try
+                         , SomeException )
+import Control.Concurrent.STM ( readTChan
+                              , writeTChan
+                              , atomically
+                              , TChan
+                              , newTChan
+                              , newTChanIO )
 import Control.Monad (forever)
-import System.IO (Handle, hClose, openFile, IOMode(..), hIsClosed)
+import System.IO ( Handle
+                 , hClose
+                 , openFile
+                 , IOMode(..) )
 import GHC.IO.Handle (hDuplicate)
-import Debug.Trace (trace)
-import Angel.Data (GroupConfig(..), FileRequest)
+import Angel.Data ( GroupConfig(..)
+                  , FileRequest )
 
 startFileManager req = forever $ fileManager req
 

@@ -1,22 +1,47 @@
 module Angel.Job where
 
-import Control.Exception (finally)
-import Data.String.Utils (split, strip)
-import Data.Maybe (isJust, fromJust, fromMaybe, mapMaybe)
-import System.Process (createProcess, proc, waitForProcess, ProcessHandle)
-import System.Process (terminateProcess, CreateProcess(..), StdStream(..))
-import Control.Concurrent
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar (readTVar, writeTVar)
+import Control.Exception ( finally )
+import Data.String.Utils ( split
+                         , strip )
+import Data.Maybe ( mapMaybe
+                  , fromMaybe
+                  , fromJust )
+import System.Process ( createProcess
+                      , proc
+                      , waitForProcess
+                      , ProcessHandle )
+import System.Process ( terminateProcess
+                      , CreateProcess(..)
+                      , StdStream(..) )
+import Control.Concurrent ( forkIO )
+import Control.Concurrent.STM ( TVar
+                              , writeTVar
+                              , readTVar
+                              , atomically )
 import qualified Data.Map as M
-import Control.Monad (unless, when, forever)
-
-import Angel.Log (logger)
-import Angel.Data hiding (env)
+import Control.Monad ( when
+                     , forever )
+import Angel.Log ( logger )
+import Angel.Data ( Program( delay
+                           , exec
+                           , logExec
+                           , name
+                           , pidFile
+                           , stderr
+                           , stdout
+                           , workingDir )
+                  , ProgramId
+                  , GroupConfig(..)
+                  , defaultProgram
+                  , defaultDelay
+                  , defaultStdout
+                  , defaultStderr )
 import qualified Angel.Data as D
-import Angel.Util (sleepSecs, nnull)
-import Angel.Files (getFile)
-import Angel.PidFile (startMaybeWithPidFile, clearPIDFile)
+import Angel.Util ( sleepSecs
+                  , nnull )
+import Angel.Files ( getFile )
+import Angel.PidFile ( startMaybeWithPidFile
+                     , clearPIDFile )
 
 ifEmpty :: String -> IO () -> IO () -> IO ()
 ifEmpty s ioa iob = if s == "" then ioa else iob

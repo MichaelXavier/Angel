@@ -4,29 +4,36 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.Config where
 
-import Control.Exception (try, SomeException)
+import Control.Exception ( try
+                         , SomeException )
 import qualified Data.Map as M
-import Control.Monad (when, mapM_, (>=>))
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar (readTVar, writeTVar)
-import Data.Configurator (load, getMap, Worth(..))
-import Data.Configurator.Types (Config, Value(..), Name)
+import Control.Monad ( when
+                     , (>=>) )
+import Control.Concurrent.STM ( STM
+                              , TVar
+                              , writeTVar
+                              , readTVar
+                              , atomically )
+import Data.Configurator ( load
+                         , getMap
+                         , Worth(..) )
+import Data.Configurator.Types ( Value(Number, String)
+                               , Name )
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
-import Data.String.Utils (split)
-import Data.List (foldl')
-import Data.Maybe (isJust, isNothing, fromMaybe)
-import Data.Monoid ((<>))
+import Data.Maybe ( isNothing
+                  , isJust )
+import Data.Monoid ( (<>) )
 import qualified Data.Text as T
-
-import Angel.Job (syncSupervisors)
-import Angel.Data
-import Angel.Log (logger)
-import Angel.Util (waitForWake
+import Angel.Job ( syncSupervisors )
+import Angel.Data ( Program(..)
+                  , SpecKey
+                  , GroupConfig(..)
+                  , defaultProgram )
+import Angel.Log ( logger )
+import Angel.Util ( waitForWake
                   , nnull
-                  , expandPath)
-
-import Debug.Trace (trace, traceShow)
+                  , expandPath )
 
 void :: Monad m => m a -> m ()
 void m = m >> return ()
