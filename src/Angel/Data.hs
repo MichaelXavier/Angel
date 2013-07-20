@@ -1,4 +1,15 @@
-module Angel.Data where
+module Angel.Data ( GroupConfig(..)
+                  , SpecKey
+                  , RunKey
+                  , ProgramId
+                  , FileRequest
+                  , Program(..)
+                  , Spec
+                  , defaultProgram
+                  , defaultDelay
+                  , defaultStdout
+                  , defaultStderr
+                  ) where
 
 import qualified Data.Map as M
 import System.Process ( createProcess
@@ -44,7 +55,14 @@ type Spec = [Program]
 
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
+defaultProgram :: Program
 defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing Nothing []
-defaultDelay = 5 :: Int
+
+defaultDelay :: Int
+defaultDelay = 5
+
+defaultStdout :: FilePath
 defaultStdout = "/dev/null"
+
+defaultStderr :: FilePath
 defaultStderr = "/dev/null"

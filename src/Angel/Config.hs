@@ -2,7 +2,9 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Angel.Config where
+module Angel.Config ( monitorConfig
+                    , modifyProg
+                    , expandByCount ) where
 
 import Control.Exception ( try
                          , SomeException )
@@ -16,7 +18,7 @@ import Control.Concurrent.STM ( STM
                               , atomically )
 import Data.Configurator ( load
                          , getMap
-                         , Worth(..) )
+                         , Worth(Required) )
 import Data.Configurator.Types ( Value(Number, String)
                                , Name )
 import qualified Data.Traversable as T
@@ -26,7 +28,15 @@ import Data.Maybe ( isNothing
 import Data.Monoid ( (<>) )
 import qualified Data.Text as T
 import Angel.Job ( syncSupervisors )
-import Angel.Data ( Program(..)
+import Angel.Data ( Program( exec
+                           , delay
+                           , stdout
+                           , stderr
+                           , logExec
+                           , pidFile
+                           , workingDir
+                           , name
+                           , env )
                   , SpecKey
                   , GroupConfig(..)
                   , defaultProgram )

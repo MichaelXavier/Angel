@@ -2,7 +2,7 @@
 module Angel.Util ( sleepSecs
                   , waitForWake
                   , expandPath
-                  , nnull) where
+                  , nnull ) where
 
 import Control.Concurrent
 import Control.Concurrent.STM

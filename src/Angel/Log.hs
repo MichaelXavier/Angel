@@ -1,6 +1,7 @@
-module Angel.Log where
+module Angel.Log ( cleanCalendar
+                 , logger) where
 
-import Data.Time.LocalTime (ZonedTime(..),
+import Data.Time.LocalTime (ZonedTime,
                             getZonedTime)
 import Data.Time.Format (formatTime)
 

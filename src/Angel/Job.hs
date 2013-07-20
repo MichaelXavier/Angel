@@ -1,4 +1,5 @@
-module Angel.Job where
+module Angel.Job ( syncSupervisors
+                 , pollStale ) where
 
 import Control.Exception ( finally )
 import Data.String.Utils ( split
