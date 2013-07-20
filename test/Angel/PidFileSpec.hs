@@ -6,10 +6,9 @@ import Data.Char (isNumber)
 import System.Process (proc)
 import System.Posix.Files (fileExist)
 
-import Test.Hspec
-import qualified Test.Hspec as H (Spec)
+import SpecHelper
 
-spec :: H.Spec
+spec :: Spec
 spec = do
   describe "startWithPidFile" $ do
     it "creates the pidfile and cleans up" $ do

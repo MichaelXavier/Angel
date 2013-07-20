@@ -6,10 +6,9 @@ import System.Posix.User (getEffectiveUserID,
                           getUserEntryForID,
                           UserEntry(..))
 
-import Test.Hspec
-import qualified Test.Hspec as H (Spec)
+import SpecHelper
 
-spec :: H.Spec
+spec :: Spec
 spec = do
   describe "expandPath" $ do
     it "generates the correct path for just a tilde" $ do

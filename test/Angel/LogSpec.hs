@@ -9,10 +9,10 @@ import Data.Time.LocalTime (timeOfDayToTime,
                             TimeZone(..),
                             ZonedTime(..))
 
-import Test.Hspec
-import qualified Test.Hspec as H (Spec)
+import SpecHelper
 
-spec :: H.Spec
+
+spec :: Spec
 spec = do
   describe "cleanCalendar" $ do
     it "formats the time correctly" $ cleanCalendar dateTime `shouldBe` "2012/09/12 03:14:59"

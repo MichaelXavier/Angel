@@ -1,17 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.ConfigSpec (spec) where
 
-import Angel.Data hiding (spec)
+import Angel.Data hiding (spec, Spec)
 import Angel.Config
 
 import Control.Exception.Base
 import Data.Configurator.Types (Value(..))
 import qualified Data.HashMap.Lazy as HM
 
-import Test.Hspec
-import qualified Test.Hspec as H (Spec)
+import SpecHelper
 
-spec :: H.Spec
+spec :: Spec
 spec = do
   describe "modifyProg" $ do
     it "modifies exec" $
