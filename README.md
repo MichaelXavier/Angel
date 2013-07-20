@@ -90,15 +90,31 @@ Notes:
 
 Testing
 -------
-There are a few ways to run tests. The simplest is `make spec`. This requires
-you have `cabal-dev` installed.
+If you prefer to stick with haskell tools, use cabal to build the package.
 
-If you have Ruby installed and bundler installed (`gem install bundler`), you
-can use Guard to monitor source files and automatically run the test suite
-after you save:
+If you have Ruby installed, I've set up a Rakefile for assisting in the
+build/testing/sandboxing/dependency process. This isn't necessary to build or
+test Angel, but it makes it easier. Run:
 
-1. Run `bundle install`
-2. Run `guard start`. Hit enter to force rebuild.
+```
+gem install bundler # if you don't have it already
+bundle install
+rake --tasks
+```
+
+If you're using cabal 0.17 or later, and I suggest you do, run
+
+```
+rake sandbox
+```
+Run the full test suite with
+```
+rake test
+```
+
+You can also use `guard start` which will watch for changes made to any source/test
+files and re-run the tests for a rapid feedback cycle.
+
 
 Configuration and Usage Example
 -------------------------------
