@@ -271,6 +271,12 @@ but still let you keep it in the config file.
 CHANGELOG
 ---------
 
+### 0.4.4
+
+* Add `env` option to config.
+* Inject `ANGEL_PROCESS_NUMBER` environment variable into processes started
+  with `count`.
+
 ### 0.4.3
 
 * Fix install failure from pidfile module not being accounted for.
