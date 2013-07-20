@@ -1,2 +1,3 @@
  * "Real" args-parsing/splitting to support quotes, etc (use some lib?)
  * ghc 6.10 support? (patches welcome)
+ * investigate if SIGTERM at shutdown is enough. Should SIGINT be attempted first?
