@@ -5,6 +5,7 @@ module Angel.Data ( GroupConfig(..)
                   , FileRequest
                   , Program(..)
                   , Spec
+                  , KillDirective(..)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
@@ -39,16 +40,26 @@ type FileRequest = (String, TChan (Maybe Handle))
 -- |the representation of a program is these 6 values, 
 -- |read from the config file
 data Program = Program {
-    name :: String,
-    exec :: Maybe String,
-    delay :: Maybe Int,
-    stdout :: Maybe String,
-    stderr :: Maybe String,
-    workingDir :: Maybe FilePath,
-    logExec :: Maybe String,
-    pidFile :: Maybe FilePath,
-    env     :: [(String, String)]
+  name       :: String,
+  exec       :: Maybe String,
+  delay      :: Maybe Int,
+  stdout     :: Maybe String,
+  stderr     :: Maybe String,
+  workingDir :: Maybe FilePath,
+  logExec    :: Maybe String,
+  pidFile    :: Maybe FilePath,
+  env        :: [(String, String)],
+  termGrace  :: Maybe Int -- ^ How long to wait after sending a SIGTERM before SIGKILL. Nothing = never SIGKILL. Default Nothing
 } deriving (Show, Eq, Ord)
+
+-- |represents all the data needed to handle terminating a process
+data KillDirective = SoftKill { killHandle :: ProcessHandle } |
+                     HardKill { killHandle :: ProcessHandle,
+                                killGracePeriod :: Int }
+
+instance Show KillDirective where
+  show (SoftKill _)       = "SoftKill"
+  show (HardKill _ grace) = "HardKill after " ++ show grace ++ "s"
 
 -- |Lower-level atoms in the configuration process
 type Spec = [Program]
@@ -56,7 +67,7 @@ type Spec = [Program]
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
 defaultProgram :: Program
-defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing Nothing []
+defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing Nothing [] Nothing
 
 defaultDelay :: Int
 defaultDelay = 5

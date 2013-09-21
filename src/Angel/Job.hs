@@ -1,4 +1,5 @@
 module Angel.Job ( syncSupervisors
+                 , killProcess -- for testing
                  , pollStale ) where
 
 import Control.Exception ( finally )
@@ -6,21 +7,25 @@ import Data.String.Utils ( split
                          , strip )
 import Data.Maybe ( mapMaybe
                   , fromMaybe
+                  , isJust
                   , fromJust )
 import System.Process ( createProcess
                       , proc
                       , waitForProcess
-                      , ProcessHandle )
-import System.Process ( terminateProcess
+                      , getProcessExitCode
+                      , ProcessHandle
+                      , terminateProcess
                       , CreateProcess(..)
                       , StdStream(..) )
-import Control.Concurrent ( forkIO )
+import Control.Concurrent ( forkIO
+                          , threadDelay )
 import Control.Concurrent.STM ( TVar
                               , writeTVar
                               , readTVar
                               , atomically )
 import qualified Data.Map as M
 import Control.Monad ( when
+                     , guard
                      , forever )
 import Angel.Log ( logger )
 import Angel.Data ( Program( delay
@@ -30,9 +35,11 @@ import Angel.Data ( Program( delay
                            , pidFile
                            , stderr
                            , stdout
+                           , termGrace
                            , workingDir )
                   , ProgramId
                   , GroupConfig(..)
+                  , KillDirective(..)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
@@ -139,9 +146,28 @@ supervise sharedGroupConfig id = do
                 return $ (UseHandle (fromJust inPipe), 
                     UseHandle (fromJust inPipe))
 
--- |send a TERM signal to all provided process handles
-killProcesses :: [ProcessHandle] -> IO ()
-killProcesses pids = mapM_ terminateProcess pids
+killProcesses :: [KillDirective] -> IO ()
+killProcesses = mapM_ killProcess
+
+killProcess :: KillDirective -> IO ()
+killProcess SoftKill { killHandle = pid } = softKill pid
+killProcess HardKill { killHandle = pid, killGracePeriod = s } = do
+  softKill pid
+  guard =<< processDead pid
+  threadDelay graceInSeconds
+  guard =<< processDead pid
+  hardKill pid
+  where graceInSeconds = sleepSecs s
+
+processDead :: ProcessHandle -> IO Bool
+processDead = fmap isJust . getProcessExitCode
+
+softKill :: ProcessHandle -> IO ()
+softKill = terminateProcess
+
+-- shit. can't do this with the processes library
+hardKill :: ProcessHandle -> IO ()
+hardKill = undefined
 
 cleanPidfiles :: [Program] -> IO ()
 cleanPidfiles progs = mapM_ clearPIDFile pidfiles
@@ -200,16 +226,21 @@ mustStart cfg = map fst $ filter (isNew $ running cfg) $ M.assocs (spec cfg)
   where isNew running (id, pg) = M.notMember id running
 
 --TODO: make private
-mustKill :: GroupConfig -> ([Program], [ProcessHandle])
+mustKill :: GroupConfig -> ([Program], [KillDirective])
 mustKill cfg = unzip targets
-  where runningAndDifferent :: (ProgramId, (Program, Maybe ProcessHandle)) -> Maybe (Program, ProcessHandle)
+  where runningAndDifferent :: (ProgramId, (Program, Maybe ProcessHandle)) -> Maybe (Program, KillDirective)
         runningAndDifferent (id, (pg, Nothing))    = Nothing
         runningAndDifferent (id, (pg, (Just pid)))
-         | (M.notMember id specMap || M.findWithDefault defaultProgram id specMap /= pg) = Just (pg, pid)
+         | (M.notMember id specMap || M.findWithDefault defaultProgram id specMap /= pg) = Just (pg, toKillDirective pg pid)
          | otherwise                                                                     = Nothing
         targets = mapMaybe runningAndDifferent allRunning
         specMap = spec cfg
         allRunning = M.assocs $ running cfg
+
+toKillDirective :: Program -> ProcessHandle -> KillDirective
+toKillDirective D.Program { termGrace = Just n } ph = HardKill { killHandle = ph,
+                                                               killGracePeriod = n}
+toKillDirective _ ph                                = SoftKill ph
 
 -- |periodically run the supervisor sync independent of config reload,
 -- |just in case state gets funky b/c of theoretically possible timing

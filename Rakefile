@@ -52,7 +52,16 @@ task :configure do
   sh "cabal configure"
 end
 
-task :build_for_test => [:configure, :install_dependencies_for_test] do
+['test/test_jobs/StubbornJob', 'test/test_jobs/CompliantJob'].each do |f|
+  file f do
+    sh "ghc --make #{f}"
+  end
+end
+
+task :build_for_test => [:configure,
+                         :install_dependencies_for_test,
+                         'test/test_jobs/StubbornJob',
+                         'test/test_jobs/CompliantJob'] do
   sh "cabal build #{build_flags}"
 end
 

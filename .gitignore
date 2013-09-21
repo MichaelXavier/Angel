@@ -1,2 +1,6 @@
 cabal-dev
 dist
+*.o
+*.hi
+test/test_jobs/CompliantJob
+test/test_jobs/StubbornJob
