@@ -2,23 +2,28 @@ module Angel.Job ( syncSupervisors
                  , killProcess -- for testing
                  , pollStale ) where
 
+import Control.Applicative ((<$>))
+import Control.Concurrent.MVar (tryTakeMVar, newEmptyMVar, putMVar)
 import Control.Exception ( finally )
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Maybe (runMaybeT)
+import Data.Conduit.Process.Unix (signalProcessHandle)
 import Data.String.Utils ( split
                          , strip )
 import Data.Maybe ( mapMaybe
                   , fromMaybe
                   , isJust
                   , fromJust )
+import System.Posix.Signals ( sigTERM
+                            , sigKILL )
 import System.Process ( createProcess
                       , proc
                       , waitForProcess
                       , getProcessExitCode
                       , ProcessHandle
-                      , terminateProcess
                       , CreateProcess(..)
                       , StdStream(..) )
-import Control.Concurrent ( forkIO
-                          , threadDelay )
+import Control.Concurrent ( forkIO )
 import Control.Concurrent.STM ( TVar
                               , writeTVar
                               , readTVar
@@ -26,6 +31,7 @@ import Control.Concurrent.STM ( TVar
 import qualified Data.Map as M
 import Control.Monad ( when
                      , guard
+                     , void
                      , forever )
 import Angel.Log ( logger )
 import Angel.Data ( Program( delay
@@ -44,6 +50,9 @@ import Angel.Data ( Program( delay
                   , defaultDelay
                   , defaultStdout
                   , defaultStderr )
+import Angel.Process ( isProcessHandleDead
+                     , softKillProcessHandle
+                     , hardKillProcessHandle )
 import qualified Angel.Data as D
 import Angel.Util ( sleepSecs
                   , nnull )
@@ -150,24 +159,16 @@ killProcesses :: [KillDirective] -> IO ()
 killProcesses = mapM_ killProcess
 
 killProcess :: KillDirective -> IO ()
-killProcess SoftKill { killHandle = pid } = softKill pid
-killProcess HardKill { killHandle = pid, killGracePeriod = s } = do
-  softKill pid
-  guard =<< processDead pid
-  threadDelay graceInSeconds
-  guard =<< processDead pid
-  hardKill pid
-  where graceInSeconds = sleepSecs s
+killProcess SoftKill { killHandle = pid } = softKillProcessHandle pid
+killProcess HardKill { killHandle = pid, killGracePeriod = grace } = do
+  softKillProcessHandle pid
+  sleepSecs grace
 
-processDead :: ProcessHandle -> IO Bool
-processDead = fmap isJust . getProcessExitCode
+  dead <- isProcessHandleDead pid
 
-softKill :: ProcessHandle -> IO ()
-softKill = terminateProcess
-
--- shit. can't do this with the processes library
-hardKill :: ProcessHandle -> IO ()
-hardKill = undefined
+  if dead
+    then return ()
+    else hardKillProcessHandle pid
 
 cleanPidfiles :: [Program] -> IO ()
 cleanPidfiles progs = mapM_ clearPIDFile pidfiles
