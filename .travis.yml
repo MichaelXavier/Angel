@@ -1,1 +1,2 @@
 language:  haskell
+script: "bundle && bundle exec rake test"
