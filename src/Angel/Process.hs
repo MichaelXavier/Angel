@@ -5,24 +5,20 @@ module Angel.Process ( getProcessHandleStatus
                      , hardKillProcessHandle
                      , signalProcessHandle ) where
 
-import Control.Applicative ((<$>))
 import Control.Exception (catchJust)
 import Control.Monad ( join
                      , void )
 import Data.Maybe (isJust)
 import System.IO.Error ( catchIOError
                        , isDoesNotExistError)
-import System.Process (ProcessHandle(..))
-import System.Process.Internals ( ProcessHandle(..)
-                                , ProcessHandle__(..)
-                                , withProcessHandle_
+import System.Process (ProcessHandle)
+import System.Process.Internals ( ProcessHandle__(..)
                                 , withProcessHandle )
 import System.Posix.Types (ProcessID)
 import System.Posix.Process ( ProcessStatus
                             , getProcessStatus )
 import System.Posix.Signals ( Signal
                             , sigTERM
-                            , sigINT --debug
                             , sigKILL
                             , signalProcess )
 

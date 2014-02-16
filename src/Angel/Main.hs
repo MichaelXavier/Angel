@@ -1,12 +1,9 @@
 module Main (main) where 
 
-import Control.Concurrent (threadDelay, forkIO, forkOS)
-import Control.Concurrent
+import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (newEmptyMVar, MVar, takeMVar, putMVar)
 import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar (readTVar, writeTVar)
-import Control.Concurrent.STM.TChan (newTChan)
-import Control.Monad (unless, when, forever)
+import Control.Monad (forever)
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
 import System.Posix.Signals
@@ -45,14 +42,14 @@ runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath configPath = do
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr LineBuffering
-    let log = logger "main" 
-    log "Angel started"
+    let logger' = logger "main" 
+    logger' "Angel started"
 
-    log $ "Using config file: " ++ configPath
+    logger' $ "Using config file: " ++ configPath
 
     -- Create the TVar that represents the "global state" of running applications
     -- and applications that _should_ be running
-    fileReqChan <- atomically $ newTChan
+    fileReqChan <- atomically newTChan
     sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty fileReqChan
 
     -- The wake signal, set by the HUP handler to wake the monitor loop
@@ -72,14 +69,14 @@ runWithConfigPath configPath = do
     forkIO $ forever $ monitorConfig configPath sharedGroupConfig wakeSig
 
     _ <- takeMVar bye
-    log "INT | TERM received; initiating shutdown..."
-    log "  1. Clearing config"
+    logger' "INT | TERM received; initiating shutdown..."
+    logger' "  1. Clearing config"
     atomically $ do
         cfg <- readTVar sharedGroupConfig
         writeTVar sharedGroupConfig cfg {spec = M.empty}
-    log "  2. Forcing sync to kill running going"
+    logger' "  2. Forcing sync to kill running going"
     syncSupervisors sharedGroupConfig
-    log "That's all folks!"
+    logger' "That's all folks!"
 
 errorExit :: String -> IO ()
 errorExit msg = hPutStrLn stderr msg >> exitFailure

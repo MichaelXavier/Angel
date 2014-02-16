@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.Config ( monitorConfig
@@ -45,16 +44,12 @@ import Angel.Util ( waitForWake
                   , nnull
                   , expandPath )
 
-void :: Monad m => m a -> m ()
-void m = m >> return ()
-
 -- |produce a mapping of name -> program for every program
 buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
-buildConfigMap cfg = do
-    return $! HM.foldlWithKey' addToMap M.empty cfg
+buildConfigMap cfg = return $! HM.foldlWithKey' addToMap M.empty cfg
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
-    addToMap m name value
+    addToMap m n value
       | nnull basekey && nnull localkey = 
         let !newprog = case M.lookup basekey m of
                           Just prog -> modifyProg prog localkey value
@@ -62,44 +57,44 @@ buildConfigMap cfg = do
             in
         M.insert basekey newprog m
       | otherwise = m
-      where (basekey, '.':localkey) = break (== '.') $ T.unpack name
+      where (basekey, '.':localkey) = break (== '.') $ T.unpack n
 
 checkConfigValues :: SpecKey -> IO SpecKey
-checkConfigValues progs = (mapM_ checkProgram $ M.elems progs) >> (return progs)
+checkConfigValues progs = mapM_ checkProgram (M.elems progs) >> return progs
   where
     checkProgram p = do
         when (isNothing $ exec p) $ error $ name p ++ " does not have an 'exec' specification"
-        when ((isJust $ logExec p) &&
+        when (isJust (logExec p) &&
             (isJust (stdout p) || isJust (stderr p) )) $ error $ name p ++ " cannot have both a logger process and stderr/stdout"
 
 modifyProg :: Program -> String -> Value -> Program
-modifyProg prog "exec" (String s) = prog{exec = Just (T.unpack s)}
-modifyProg prog "exec" _ = error "wrong type for field 'exec'; string required"
+modifyProg prog "exec" (String s) = prog {exec = Just (T.unpack s)}
+modifyProg _ "exec" _ = error "wrong type for field 'exec'; string required"
 
 modifyProg prog "delay" (Number n) | n < 0     = error "delay value must be >= 0"
                                    | otherwise = prog{delay = Just $ round n}
-modifyProg prog "delay" _ = error "wrong type for field 'delay'; integer"
+modifyProg _ "delay" _ = error "wrong type for field 'delay'; integer"
 
 modifyProg prog "stdout" (String s) = prog{stdout = Just (T.unpack s)}
-modifyProg prog "stdout" _ = error "wrong type for field 'stdout'; string required"
+modifyProg _ "stdout" _ = error "wrong type for field 'stdout'; string required"
 
 modifyProg prog "stderr" (String s) = prog{stderr = Just (T.unpack s)}
-modifyProg prog "stderr" _ = error "wrong type for field 'stderr'; string required"
+modifyProg _ "stderr" _ = error "wrong type for field 'stderr'; string required"
 
-modifyProg prog "directory" (String s) = prog{workingDir = (Just $ T.unpack s)}
-modifyProg prog "directory" _ = error "wrong type for field 'directory'; string required"
+modifyProg prog "directory" (String s) = prog{workingDir = Just (T.unpack s)}
+modifyProg _ "directory" _ = error "wrong type for field 'directory'; string required"
 
-modifyProg prog "logger" (String s) = prog{logExec = (Just $ T.unpack s)}
-modifyProg prog "logger" _ = error "wrong type for field 'logger'; string required"
+modifyProg prog "logger" (String s) = prog{logExec = Just (T.unpack s)}
+modifyProg _ "logger" _ = error "wrong type for field 'logger'; string required"
 
-modifyProg prog "pidfile" (String s) = prog{pidFile = (Just $ T.unpack s)}
-modifyProg prog "pidfile" _ = error "wrong type for field 'pidfile'; string required"
+modifyProg prog "pidfile" (String s) = prog{pidFile = Just (T.unpack s)}
+modifyProg _ "pidfile" _ = error "wrong type for field 'pidfile'; string required"
 
 modifyProg prog ('e':'n':'v':'.':envVar) (String s) = prog{env = envVar'}
-  where envVar' = (envVar, T.unpack s):(env prog)
-modifyProg prog ('e':'n':'v':'.':_) _ = error "wrong type for env field; string required"
+  where envVar' = (envVar, T.unpack s):env prog
+modifyProg _ ('e':'n':'v':'.':_) _ = error "wrong type for env field; string required"
 
-modifyProg prog n _ = prog
+modifyProg prog _ _ = prog
 
 
 -- |invoke the parser to process the file at configPath
@@ -151,36 +146,36 @@ rewriteConfig n = HM.insert "env.ANGEL_PROCESS_NUMBER" procNumber . HM.adjust re
         rewritePidfile x              = x
 
 textNumber :: Rational -> T.Text
-textNumber = T.pack . show . truncate
+textNumber = T.pack . show . (truncate :: Rational -> Integer)
 
 reflatten :: Name -> HM.HashMap Name Value -> HM.HashMap Name Value
 reflatten prog pcfg = HM.fromList asList
   where asList            = map prependKey $ filter notCount $ HM.toList pcfg
-        prependKey (k, v) = ((prog <> "." <> k), v)
+        prependKey (k, v) = (prog <> "." <> k, v)
         notCount          = not . (== "count") . fst
 
 -- |given a new SpecKey just parsed from the file, update the 
 -- |shared state TVar
 updateSpecConfig :: TVar GroupConfig -> SpecKey -> STM ()
-updateSpecConfig sharedGroupConfig spec = do 
+updateSpecConfig sharedGroupConfig newSpec = do 
     cfg <- readTVar sharedGroupConfig
-    writeTVar sharedGroupConfig cfg{spec=spec}
+    writeTVar sharedGroupConfig cfg{spec=newSpec}
 
 -- |read the config file, update shared state with current spec, 
 -- |re-sync running supervisors, wait for the HUP TVar, then repeat!
 monitorConfig :: String -> TVar GroupConfig -> TVar (Maybe Int) -> IO ()
 monitorConfig configPath sharedGroupConfig wakeSig = do 
-    let log = logger "config-monitor"
+    let logger' = logger "config-monitor"
     mspec <- processConfig configPath
     case mspec of 
         Left e     -> do 
-            log $ " <<<< Config Error >>>>\n" ++ e
-            log " <<<< Config Error: Skipping reload >>>>"
-        Right spec -> do 
-            atomically $ updateSpecConfig sharedGroupConfig spec
+            logger' $ " <<<< Config Error >>>>\n" ++ e
+            logger' " <<<< Config Error: Skipping reload >>>>"
+        Right newSpec -> do 
+            atomically $ updateSpecConfig sharedGroupConfig newSpec
             syncSupervisors sharedGroupConfig
     waitForWake wakeSig
-    log "HUP caught, reloading config"
+    logger' "HUP caught, reloading config"
 
 expandPaths :: SpecKey -> IO SpecKey
 expandPaths = T.mapM expandProgramPaths

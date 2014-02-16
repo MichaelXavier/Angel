@@ -13,13 +13,7 @@ module Angel.Data ( GroupConfig(..)
                   ) where
 
 import qualified Data.Map as M
-import System.Process ( createProcess
-                      , proc
-                      , waitForProcess
-                      , ProcessHandle )
-import System.Process ( terminateProcess
-                      , CreateProcess(..)
-                      , StdStream(..) )
+import System.Process ( ProcessHandle )
 import Control.Concurrent.STM.TChan (TChan)
 import System.IO (Handle)
 
