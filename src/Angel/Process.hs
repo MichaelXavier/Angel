@@ -6,9 +6,12 @@ module Angel.Process ( getProcessHandleStatus
                      , signalProcessHandle ) where
 
 import Control.Applicative ((<$>))
+import Control.Exception (catchJust)
 import Control.Monad ( join
                      , void )
 import Data.Maybe (isJust)
+import System.IO.Error ( catchIOError
+                       , isDoesNotExistError)
 import System.Process (ProcessHandle(..))
 import System.Process.Internals ( ProcessHandle(..)
                                 , ProcessHandle__(..)
@@ -30,9 +33,14 @@ withPid action ph = withProcessHandle ph callback
                                            return (ph_, Just res)
 
 getProcessHandleStatus :: ProcessHandle -> IO (Maybe ProcessStatus)
-getProcessHandleStatus = fmap join . withPid (getProcessStatus shouldBlock includeStopped) 
+getProcessHandleStatus ph = catchJust exPred getStatus handleDNE
   where shouldBlock    = False
         includeStopped = True
+        getStatus = fmap join $ withPid (getProcessStatus shouldBlock includeStopped) ph
+        exPred e
+          | isDoesNotExistError e = Just ()
+          | otherwise             = Nothing
+        handleDNE = const $ return Nothing -- ehhhhhhhhhhhhh, Nothing means not available?
 
 signalProcessHandle :: Signal -> ProcessHandle -> IO ()
 signalProcessHandle sig = void . withPid (signalProcess sig) 
@@ -44,4 +52,6 @@ hardKillProcessHandle :: ProcessHandle -> IO ()
 hardKillProcessHandle = signalProcessHandle sigKILL
 
 isProcessHandleDead :: ProcessHandle -> IO Bool
-isProcessHandleDead = fmap isJust . getProcessHandleStatus
+isProcessHandleDead ph = catchIOError checkHandle (const $ return True)
+  where
+    checkHandle = fmap isJust $ getProcessHandleStatus ph

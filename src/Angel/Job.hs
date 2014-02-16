@@ -7,6 +7,7 @@ import Control.Concurrent.MVar (tryTakeMVar, newEmptyMVar, putMVar)
 import Control.Exception ( finally )
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Maybe (runMaybeT)
+import Control.Monad (unless)
 import Data.Conduit.Process.Unix (signalProcessHandle)
 import Data.String.Utils ( split
                          , strip )
@@ -155,20 +156,26 @@ supervise sharedGroupConfig id = do
                 return $ (UseHandle (fromJust inPipe), 
                     UseHandle (fromJust inPipe))
 
+--TODO: paralellize
 killProcesses :: [KillDirective] -> IO ()
 killProcesses = mapM_ killProcess
 
 killProcess :: KillDirective -> IO ()
-killProcess SoftKill { killHandle = pid } = softKillProcessHandle pid
-killProcess HardKill { killHandle = pid, killGracePeriod = grace } = do
+killProcess (SoftKill n pid) = do
+  log $ "Soft killing " ++ n
   softKillProcessHandle pid
+  where log = logger "process-killer"
+killProcess (HardKill n pid grace) = do
+  log $ "Attempting soft kill " ++ n ++ " before hard killing"
+  softKillProcessHandle pid
+  log $ "Waiting " ++ show grace ++ " seconds for " ++ n ++ " to die"
   sleepSecs grace
 
+  -- Note that this means future calls to get exits status will fail
   dead <- isProcessHandleDead pid
 
-  if dead
-    then return ()
-    else hardKillProcessHandle pid
+  unless dead $ log ("Hard killing " ++ n) >> hardKillProcessHandle pid
+  where log = logger "process-killer"
 
 cleanPidfiles :: [Program] -> IO ()
 cleanPidfiles progs = mapM_ clearPIDFile pidfiles
@@ -239,9 +246,9 @@ mustKill cfg = unzip targets
         allRunning = M.assocs $ running cfg
 
 toKillDirective :: Program -> ProcessHandle -> KillDirective
-toKillDirective D.Program { termGrace = Just n } ph = HardKill { killHandle = ph,
-                                                               killGracePeriod = n}
-toKillDirective _ ph                                = SoftKill ph
+toKillDirective D.Program { name = n
+                          , termGrace = Just g } ph = HardKill n ph g
+toKillDirective D.Program { name = n } ph           = SoftKill n ph
 
 -- |periodically run the supervisor sync independent of config reload,
 -- |just in case state gets funky b/c of theoretically possible timing

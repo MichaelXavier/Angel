@@ -53,13 +53,12 @@ data Program = Program {
 } deriving (Show, Eq, Ord)
 
 -- |represents all the data needed to handle terminating a process
-data KillDirective = SoftKill { killHandle :: ProcessHandle } |
-                     HardKill { killHandle :: ProcessHandle,
-                                killGracePeriod :: Int }
+data KillDirective = SoftKill String ProcessHandle |
+                     HardKill String ProcessHandle Int
 
-instance Show KillDirective where
-  show (SoftKill _)       = "SoftKill"
-  show (HardKill _ grace) = "HardKill after " ++ show grace ++ "s"
+-- instance Show KillDirective where
+--   show (SoftKill _)       = "SoftKill"
+--   show (HardKill _ grace) = "HardKill after " ++ show grace ++ "s"
 
 -- |Lower-level atoms in the configuration process
 type Spec = [Program]

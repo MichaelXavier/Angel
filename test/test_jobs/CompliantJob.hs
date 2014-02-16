@@ -9,6 +9,7 @@ import System.Posix.Signals (installHandler, sigTERM, Handler(Catch))
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
+  putStrLn "Compliant job started"
   sig <- newEmptyMVar
   installHandler sigTERM (Catch $ print "term" >> putMVar sig ExitSuccess) Nothing
   exitWith =<< takeMVar sig
