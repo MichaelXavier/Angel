@@ -1,9 +1,7 @@
  * "Real" args-parsing/splitting to support quotes, etc (use some lib?)
  * ghc 6.10 support? (patches welcome)
  * replace bizarre usage of TVar with TMVar or just MVar
- * configurable timeout before SIGKILL after SIGTERM
  * eliminate all warnings
 
  grace period feature:
- * integrate generation of job binaries into cabal build
- * document
+ * make sure kills get logged with the correct program prefix

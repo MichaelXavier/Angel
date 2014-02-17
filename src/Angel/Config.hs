@@ -18,7 +18,7 @@ import Control.Concurrent.STM ( STM
 import Data.Configurator ( load
                          , getMap
                          , Worth(Required) )
-import Data.Configurator.Types ( Value(Number, String)
+import Data.Configurator.Types ( Value(Number, String, Bool)
                                , Name )
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
@@ -35,6 +35,7 @@ import Angel.Data ( Program( exec
                            , pidFile
                            , workingDir
                            , name
+                           , termGrace
                            , env )
                   , SpecKey
                   , GroupConfig(..)
@@ -45,8 +46,8 @@ import Angel.Util ( waitForWake
                   , expandPath )
 
 -- |produce a mapping of name -> program for every program
-buildConfigMap :: HM.HashMap Name Value -> IO SpecKey
-buildConfigMap cfg = return $! HM.foldlWithKey' addToMap M.empty cfg
+buildConfigMap :: HM.HashMap Name Value -> SpecKey
+buildConfigMap = HM.foldlWithKey' addToMap M.empty . addDefaults
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
     addToMap m n value
@@ -58,6 +59,14 @@ buildConfigMap cfg = return $! HM.foldlWithKey' addToMap M.empty cfg
         M.insert basekey newprog m
       | otherwise = m
       where (basekey, '.':localkey) = break (== '.') $ T.unpack n
+
+addDefaults :: HM.HashMap Name Value -> HM.HashMap Name Value
+addDefaults conf
+  | HM.member graceKey conf = conf
+  | otherwise = HM.insert graceKey defaultGrace conf
+  where
+    graceKey = "grace"
+    defaultGrace = Bool False
 
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = mapM_ checkProgram (M.elems progs) >> return progs
@@ -94,6 +103,12 @@ modifyProg prog ('e':'n':'v':'.':envVar) (String s) = prog{env = envVar'}
   where envVar' = (envVar, T.unpack s):env prog
 modifyProg _ ('e':'n':'v':'.':_) _ = error "wrong type for env field; string required"
 
+modifyProg prog "termgrace" (Bool False) = prog{termGrace = Nothing}
+modifyProg prog "termgrace" (Number n) | n < 0 = error "termgrace if it is a number must be >= 1"
+                                       | n == 0 = prog{termGrace = Nothing}
+                                       | otherwise = prog { termGrace = Just $ round n}
+modifyProg _ "termgrace" _ = error "wrong type for field 'temgrace'; number or boolean false required"
+
 modifyProg prog _ _ = prog
 
 
@@ -106,10 +121,10 @@ processConfig configPath = do
     case mconf of
         Right config -> return $ Right config
         Left (e :: SomeException) -> return $ Left $ show e
-  where process = getMap                 >=>
-                  return . expandByCount >=>
-                  buildConfigMap         >=>
-                  expandPaths            >=>
+  where process = getMap                  >=>
+                  return . expandByCount  >=>
+                  return . buildConfigMap >=>
+                  expandPaths             >=>
                   checkConfigValues
 
 -- |preprocess config into multiple programs if "count" is specified

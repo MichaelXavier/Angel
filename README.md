@@ -110,6 +110,7 @@ A basic configuration file might look like this:
         stdout = "/tmp/ls_log"
         stderr = "/tmp/ls_log"
         delay = 7
+        termgrace = off
     }
 
     workers {
@@ -121,6 +122,7 @@ A basic configuration file might look like this:
           FOO = "BAR"
           BAR = "BAZ"
         }
+        termgrace = 10
     }
 
 Each program that should be supervised starts a `program-id` block:
@@ -158,6 +160,13 @@ Then, a series of corresponding configuration commands follow:
    etc.
  * `env` is a nested config of string key/value pairs. Non-string values are
    invalid.
+ * `termgrace` is an optional number of seconds to wait between
+   sending a SIGTERM and a SIGKILL to a program when it needs to shut
+   down. Any positive number will be interpreted as seconds. `0`,
+   `off`, or omission will be interpreted as disabling the feature and
+   only a sigterm will be sent. This is useful for processes that must
+   not be brought down forcefully to avoid corruption of data or other
+   ill effects.
 
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
