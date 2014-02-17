@@ -11,7 +11,7 @@ import System.Process ( CreateProcess
 
 -- Wish I didn't have to do this :(
 import System.Process.Internals ( PHANDLE
-                                , ProcessHandle__(..)
+                                , ProcessHandle__(OpenHandle, ClosedHandle)
                                 , withProcessHandle
                                 )
 import System.Posix.Files ( removeLink

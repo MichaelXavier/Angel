@@ -1,7 +1,3 @@
  * "Real" args-parsing/splitting to support quotes, etc (use some lib?)
  * ghc 6.10 support? (patches welcome)
  * replace bizarre usage of TVar with TMVar or just MVar
- * eliminate all warnings
-
- grace period feature:
- * make sure kills get logged with the correct program prefix

@@ -15,8 +15,13 @@ import System.Process ( createProcess
                       , proc
                       , waitForProcess
                       , ProcessHandle
-                      , CreateProcess(..)
-                      , StdStream(..) )
+                      , CreateProcess
+                      , std_out
+                      , std_err
+                      , std_in
+                      , cwd
+                      , env
+                      , StdStream(UseHandle, CreatePipe) )
 import Control.Concurrent ( forkIO )
 import Control.Concurrent.STM ( TVar
                               , writeTVar
@@ -34,8 +39,10 @@ import Angel.Data ( Program( delay
                            , termGrace
                            , workingDir )
                   , ProgramId
-                  , GroupConfig(..)
-                  , KillDirective(..)
+                  , GroupConfig
+                  , spec
+                  , running
+                  , KillDirective(SoftKill, HardKill)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
@@ -52,6 +59,7 @@ import Angel.PidFile ( startMaybeWithPidFile
 
 ifEmpty :: String -> IO () -> IO () -> IO ()
 ifEmpty s ioa iob = if s == "" then ioa else iob
+
 -- |launch the program specified by `id`, opening (and closing) the
 -- |appropriate fds for logging.  When the process dies, either b/c it was
 -- |killed by a monitor, killed by a system user, or ended execution naturally,

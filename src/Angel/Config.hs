@@ -38,7 +38,8 @@ import Angel.Data ( Program( exec
                            , termGrace
                            , env )
                   , SpecKey
-                  , GroupConfig(..)
+                  , GroupConfig
+                  , spec
                   , defaultProgram )
 import Angel.Log ( logger )
 import Angel.Util ( waitForWake

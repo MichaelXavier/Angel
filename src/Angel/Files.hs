@@ -13,9 +13,10 @@ import Control.Monad (forever)
 import System.IO ( Handle
                  , hClose
                  , openFile
-                 , IOMode(..) )
+                 , IOMode(AppendMode) )
 import GHC.IO.Handle (hDuplicate)
-import Angel.Data ( GroupConfig(..)
+import Angel.Data ( GroupConfig
+                  , fileRequest
                   , FileRequest )
 
 startFileManager :: TChan FileRequest -> IO b

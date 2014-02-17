@@ -12,7 +12,7 @@ import Data.Maybe (isJust)
 import System.IO.Error ( catchIOError
                        , isDoesNotExistError)
 import System.Process (ProcessHandle)
-import System.Process.Internals ( ProcessHandle__(..)
+import System.Process.Internals ( ProcessHandle__(OpenHandle, ClosedHandle)
                                 , withProcessHandle )
 import System.Posix.Types (ProcessID)
 import System.Posix.Process ( ProcessStatus

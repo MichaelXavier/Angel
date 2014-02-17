@@ -1,20 +1,39 @@
 module Main (main) where 
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar (newEmptyMVar, MVar, takeMVar, putMVar)
-import Control.Concurrent.STM
+import Control.Concurrent.MVar (newEmptyMVar,
+                                MVar,
+                                takeMVar,
+                                putMVar)
+import Control.Concurrent.STM (TVar,
+                               atomically,
+                               writeTVar,
+                               newTChan,
+                               readTVar,
+                               newTVarIO)
 import Control.Monad (forever)
 import System.Environment (getArgs)
-import System.Exit (exitFailure, exitSuccess)
-import System.Posix.Signals
-import System.IO (hSetBuffering, hPutStrLn, BufferMode(..), stdout, stderr)
+import System.Exit (exitFailure,
+                    exitSuccess)
+import System.Posix.Signals (installHandler,
+                             sigHUP,
+                             sigTERM,
+                             sigINT,
+                             Handler(Catch))
+import System.IO (hSetBuffering,
+                  hPutStrLn,
+                  BufferMode(LineBuffering),
+                  stdout,
+                  stderr)
 
 import qualified Data.Map as M
 
 import Angel.Log (logger)
 import Angel.Config (monitorConfig)
-import Angel.Data (GroupConfig(..))
-import Angel.Job (pollStale, syncSupervisors)
+import Angel.Data (GroupConfig(GroupConfig),
+                   spec)
+import Angel.Job (pollStale,
+                  syncSupervisors)
 import Angel.Files (startFileManager)
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
