@@ -88,34 +88,6 @@ Notes:
  * I have not tried building `angel` against ghc 6.10 or earlier;
    6.12, 7.0, 7.2, 7.4, and 7.6 are known to work
 
-Testing
--------
-If you prefer to stick with haskell tools, use cabal to build the package.
-
-If you have Ruby installed, I've set up a Rakefile for assisting in the
-build/testing/sandboxing/dependency process. This isn't necessary to build or
-test Angel, but it makes it easier. Run:
-
-```
-gem install bundler # if you don't have it already
-bundle install
-rake --tasks
-```
-
-If you're using cabal 0.17 or later, and I suggest you do, run
-
-```
-rake sandbox
-```
-Run the full test suite with
-```
-rake test
-```
-
-You can also use `guard start` which will watch for changes made to any source/test
-files and re-run the tests for a rapid feedback cycle.
-
-
 Configuration and Usage Example
 -------------------------------
 
@@ -212,7 +184,7 @@ You can see that when the configuration is parsed, the process-monitor
 notices that two programs need to be started.  A supervisor is started
 in a lightweight thread for each, and starts logging with the context
 `program: <program-id>`.
-
+pp
 `watch-date` starts up and runs.  Since `watch` is a long-running process
 it just keeps running in the background.
 
@@ -261,6 +233,33 @@ well as environment variable expansion.  Using collections
 of configuration files and host-based or service-based
 environment variables, efficient, templated `angel`
 configurations can be had.
+
+Testing
+-------
+If you prefer to stick with haskell tools, use cabal to build the package.
+
+If you have Ruby installed, I've set up a Rakefile for assisting in the
+build/testing/sandboxing/dependency process. This isn't necessary to build or
+test Angel, but it makes it easier. Run:
+
+```
+gem install bundler # if you don't have it already
+bundle install
+rake --tasks
+```
+
+If you're using cabal 0.17 or later, and I suggest you do, run
+
+```
+rake sandbox
+```
+Run the full test suite with
+```
+rake test
+```
+
+You can also use `guard start` which will watch for changes made to any source/test
+files and re-run the tests for a rapid feedback cycle.
 
 FAQ
 ---
