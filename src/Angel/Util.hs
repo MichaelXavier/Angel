@@ -2,12 +2,16 @@
 module Angel.Util ( sleepSecs
                   , waitForWake
                   , expandPath
+                  , split
+                  , strip
                   , nnull ) where
 
 import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Concurrent.STM.TVar (readTVar, writeTVar)
 import Control.Concurrent (threadDelay, forkIO, forkOS)
+import Data.Char (isSpace)
+import Data.Maybe (catMaybes)
 import System.Posix.User (getEffectiveUserName,
                           UserEntry(homeDirectory),
                           getUserEntryForName)
@@ -36,3 +40,15 @@ expandPath path = return path
 
 nnull :: [a] -> Bool
 nnull = not . null
+
+split :: Eq a => a -> [a] -> [[a]]
+split a = catMaybes . foldr go []
+  where
+    go x acc = case (x == a, acc) of
+      (True, xs) -> Nothing:xs
+      (False, []) -> [Just [x]]
+      (False, Nothing:rest) -> Just [x]:Nothing:rest
+      (False, Just xs:rest) -> Just (x:xs):rest
+
+strip :: String -> String
+strip = reverse . dropWhile isSpace . reverse . dropWhile isSpace

@@ -2,8 +2,6 @@ module Angel.Job ( syncSupervisors
                  , pollStale ) where
 
 import Control.Exception ( finally )
-import Data.String.Utils ( split
-                         , strip )
 import Data.Maybe ( mapMaybe
                   , fromMaybe
                   , fromJust )
@@ -39,6 +37,8 @@ import Angel.Data ( Program( delay
                   , defaultStderr )
 import qualified Angel.Data as D
 import Angel.Util ( sleepSecs
+                  , strip
+                  , split
                   , nnull )
 import Angel.Files ( getFile )
 import Angel.PidFile ( startMaybeWithPidFile
@@ -99,7 +99,7 @@ supervise sharedGroupConfig id = do
     where
         log = logger $ "- program: " ++ id ++ " -"
         cmdSplit fullcmd = (head parts, tail parts) 
-            where parts = (filter (/="") . map strip . split " ") fullcmd
+            where parts = (filter (/="") . map strip . split ' ') fullcmd
 
         find_me cfg = M.findWithDefault defaultProgram id (spec cfg)
         updateRunningPid my_spec mpid = atomically $ do 

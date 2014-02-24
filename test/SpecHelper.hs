@@ -1,3 +1,4 @@
-module SpecHelper (module Test.Hspec) where
+module SpecHelper (module X) where
 
-import Test.Hspec
+import Test.Hspec as X
+import Test.Hspec.QuickCheck as X

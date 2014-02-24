@@ -23,4 +23,12 @@ spec = do
     it "leaves paths without tildes alone" $ do
       path <- expandPath "/foo"
       path `shouldBe` "/foo"
+  describe "split" $ do
+    prop "produces no null values" $ \(a :: Char) (xs :: [Char]) ->
+      none null $ split a xs
+    prop "produces no instances of the split element" $ \(a :: Char) (xs :: [Char]) ->
+      none (elem a) $ split a xs
+    it "splits" $
+      split ' ' "  foo  bar     baz  " `shouldBe` ["foo", "bar", "baz"]
   where getUserEntry = getUserEntryForID =<< getEffectiveUserID
+        none p = not . any p
