@@ -48,5 +48,5 @@ clearPIDFile pidFile = do ex <- fileExist pidFile
 
 getPID :: ProcessHandle -> IO (Maybe PHANDLE)
 getPID pHandle = withProcessHandle pHandle getPID'
-  where getPID' h @ (OpenHandle t) = return (h, Just t)
-        getPID' h @ (ClosedHandle t) = return (h, Nothing)
+  where getPID' h @ (OpenHandle t) = return (Just t)
+        getPID' h @ (ClosedHandle t) = return Nothing
