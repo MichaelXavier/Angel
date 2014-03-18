@@ -286,6 +286,8 @@ but still let you keep it in the config file.
 
 CHANGELOG
 ---------
+### 0.5.0
+* Drop depdendency on MissingH
 
 ### 0.4.4
 
