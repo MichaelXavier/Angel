@@ -69,6 +69,25 @@ spec = do
       modifyProg prog { env = [("previous", "value")]} "env.foo" (String "bar") `shouldBe`
       prog { env = [("foo", "bar"), ("previous", "value")]}
 
+    it "interprets boolean False as Nothing" $
+      modifyProg prog "termgrace" (Bool False) `shouldBe`
+      prog { termGrace = Nothing }
+    it "interprets 0 as Nothing" $
+      modifyProg prog "termgrace" (Number 0) `shouldBe`
+      prog { termGrace = Nothing }
+    it "interprets > 0 as a set termGrace" $
+      modifyProg prog "termgrace" (Number 2) `shouldBe`
+      prog { termGrace = Just 2 }
+    it "interprets boolean True as an error" $
+      evaluate (modifyProg prog "termgrace" (Bool True)) `shouldThrow`
+      anyErrorCall
+    it "interprets negative numbers as an error" $
+      evaluate (modifyProg prog "termgrace" (Number (-1))) `shouldThrow`
+      anyErrorCall
+    it "interprets anything else as an error" $
+      evaluate (modifyProg prog "termgrace" (String "yeah")) `shouldThrow`
+      anyErrorCall
+
     it "does nothing for all other cases" $
       modifyProg prog "bogus" (String "foo") `shouldBe`
       prog

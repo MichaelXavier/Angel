@@ -6,10 +6,12 @@ module Angel.Util ( sleepSecs
                   , strip
                   , nnull ) where
 
-import Control.Concurrent
-import Control.Concurrent.STM
-import Control.Concurrent.STM.TVar (readTVar, writeTVar)
-import Control.Concurrent (threadDelay, forkIO, forkOS)
+import Control.Concurrent.STM (atomically
+                              , retry
+                              , TVar
+                              , readTVar
+                              , writeTVar)
+import Control.Concurrent (threadDelay)
 import Data.Char (isSpace)
 import Data.Maybe (catMaybes)
 import System.Posix.User (getEffectiveUserName,
@@ -22,10 +24,10 @@ sleepSecs s = threadDelay $ s * 1000000
 
 -- |wait for the STM TVar to be non-nothing
 waitForWake :: TVar (Maybe Int) -> IO ()
-waitForWake wakeSig = atomically $ do 
+waitForWake wakeSig = atomically $ do
     state <- readTVar wakeSig
     case state of
-        Just x -> writeTVar wakeSig Nothing
+        Just _ -> writeTVar wakeSig Nothing
         Nothing -> retry
 
 expandPath :: FilePath -> IO FilePath

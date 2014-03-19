@@ -2,11 +2,8 @@ module Angel.PidFile ( startMaybeWithPidFile
                      , startWithPidFile
                      , clearPIDFile) where
 
-import Control.Applicative ( (<$>)
-                           , (<*>) )
-import Control.Exception.Base ( catch
-                              , finally
-                              , SomeException)
+import Control.Exception.Base (finally)
+
 import Control.Monad (when)
 import System.Process ( CreateProcess
                       , createProcess
@@ -14,7 +11,7 @@ import System.Process ( CreateProcess
 
 -- Wish I didn't have to do this :(
 import System.Process.Internals ( PHANDLE
-                                , ProcessHandle__(..)
+                                , ProcessHandle__(OpenHandle, ClosedHandle)
                                 , withProcessHandle
                                 )
 import System.Posix.Files ( removeLink
@@ -25,7 +22,7 @@ startMaybeWithPidFile procSpec (Just pidFile) = startWithPidFile procSpec pidFil
 startMaybeWithPidFile procSpec Nothing        = withPHandle procSpec
 
 startWithPidFile :: CreateProcess -> FilePath -> (ProcessHandle -> IO a) -> IO a
-startWithPidFile procSpec pidFile action = do
+startWithPidFile procSpec pidFile action =
   withPHandle procSpec $ \pHandle -> do
     mPid               <-  getPID pHandle
     maybe (return ()) write mPid
@@ -43,8 +40,7 @@ writePID pidFile = writeFile pidFile . show
 clearPIDFile :: FilePath -> IO ()
 clearPIDFile pidFile = do ex <- fileExist pidFile
                           when ex rm
-  where exists = fileExist pidFile
-        rm     = removeLink pidFile
+  where rm = removeLink pidFile
 
 getPID :: ProcessHandle -> IO (Maybe PHANDLE)
 getPID pHandle = withProcessHandle pHandle getPID'
