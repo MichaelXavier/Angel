@@ -10,10 +10,10 @@ Name:                angel
 Version:             0.5.0
 
 -- A short (one-line) description of the package.
--- Synopsis:            
+-- Synopsis:
 
 -- A longer description of the package.
--- Description:         
+-- Description:
 
 -- The license under which the package is released.
 License:             BSD3
@@ -42,7 +42,7 @@ Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Homepage:            http://github.com/MichaelXavier/Angel
 
 -- A copyright notice.
--- Copyright:           
+-- Copyright:
 
 -- Stability of the pakcage (experimental, provisional, stable...)
 Stability:           Stable
@@ -65,7 +65,7 @@ Executable angel
   -- .hs or .lhs file containing the Main module.
   Hs-Source-Dirs: src
   Main-is: Angel/Main.hs
-  
+
   -- Packages needed in order to build this package.
   Build-depends: base >= 4.0 && < 5
   -- binding to the internals of process here, gotta be careful
@@ -81,7 +81,7 @@ Executable angel
   Build-depends: text>=0.11
   Build-depends: unix-process-conduit >= 0.2.0
 
-  
+
   -- Modules not exported by this package.
   Other-modules: Angel.Files,
                  Angel.Config,
@@ -92,12 +92,12 @@ Executable angel
                  Angel.Log,
                  Angel.Util,
                  Angel.PidFile
-  
+
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
-  -- Build-tools:         
+  -- Build-tools:
 
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
-  
+
   Ghc-Options: -threaded -fwarn-missing-import-lists
 
 test-suite spec

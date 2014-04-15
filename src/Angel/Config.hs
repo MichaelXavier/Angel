@@ -3,7 +3,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.Config ( monitorConfig
                     , modifyProg
-                    , expandByCount ) where
+                    , expandByCount
+                    -- for testing
+                    , processConfig) where
 
 import Control.Exception ( try
                          , SomeException )
@@ -52,7 +54,7 @@ buildConfigMap = HM.foldlWithKey' addToMap M.empty . addDefaults
   where
     addToMap :: SpecKey -> Name -> Value -> SpecKey
     addToMap m n value
-      | nnull basekey && nnull localkey = 
+      | nnull basekey && nnull localkey =
         let !newprog = case M.lookup basekey m of
                           Just prog -> modifyProg prog localkey value
                           Nothing   -> modifyProg defaultProgram {name = basekey, env = []} localkey value
@@ -116,7 +118,7 @@ modifyProg prog _ _ = prog
 -- |invoke the parser to process the file at configPath
 -- |produce a SpecKey
 processConfig :: String -> IO (Either String SpecKey)
-processConfig configPath = do 
+processConfig configPath = do
     mconf <- try $ process =<< load [Required configPath]
 
     case mconf of
@@ -170,24 +172,24 @@ reflatten prog pcfg = HM.fromList asList
         prependKey (k, v) = (prog <> "." <> k, v)
         notCount          = not . (== "count") . fst
 
--- |given a new SpecKey just parsed from the file, update the 
+-- |given a new SpecKey just parsed from the file, update the
 -- |shared state TVar
 updateSpecConfig :: TVar GroupConfig -> SpecKey -> STM ()
-updateSpecConfig sharedGroupConfig newSpec = do 
+updateSpecConfig sharedGroupConfig newSpec = do
     cfg <- readTVar sharedGroupConfig
     writeTVar sharedGroupConfig cfg{spec=newSpec}
 
--- |read the config file, update shared state with current spec, 
+-- |read the config file, update shared state with current spec,
 -- |re-sync running supervisors, wait for the HUP TVar, then repeat!
 monitorConfig :: String -> TVar GroupConfig -> TVar (Maybe Int) -> IO ()
-monitorConfig configPath sharedGroupConfig wakeSig = do 
+monitorConfig configPath sharedGroupConfig wakeSig = do
     let logger' = logger "config-monitor"
     mspec <- processConfig configPath
-    case mspec of 
-        Left e     -> do 
+    case mspec of
+        Left e     -> do
             logger' $ " <<<< Config Error >>>>\n" ++ e
             logger' " <<<< Config Error: Skipping reload >>>>"
-        Right newSpec -> do 
+        Right newSpec -> do
             atomically $ updateSpecConfig sharedGroupConfig newSpec
             syncSupervisors sharedGroupConfig
     waitForWake wakeSig

@@ -132,5 +132,13 @@ spec = do
         HM.fromList [ ("prog-1.exec", String "foo")
                     , ("prog-1.env.ANGEL_PROCESS_NUMBER", String "1")
                     , ("prog-1.pidfile", String "foo-1.pid")] --TODO: try without expanding if count == 1
+  describe "processConfig internal API" $
+    it "can parse the example config" $
+      shouldReturnRight $ processConfig "example.conf"
   where prog = defaultProgram
-        baseProgPair = ("prog.exec", (String "foo"))
+        baseProgPair = ("prog.exec", String "foo")
+        shouldReturnRight a = flip shouldSatisfy isRight =<< a
+
+isRight :: Either a b -> Bool
+isRight (Right _) = True
+isRight _         = False
