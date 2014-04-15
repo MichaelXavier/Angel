@@ -157,7 +157,8 @@ Then, a series of corresponding configuration commands follow:
    created. If you don't specify an absolute path, it will use the running
    directory of angel. When combined with the `count` option, specifying a
    pidfile of `worker.pid`, it will generate `worker-1.pid`, `worker-2.pid`,
-   etc.
+   etc. If you don't specify a `pidfile` directive, then `angel` will *not*
+   create a pidfile
  * `env` is a nested config of string key/value pairs. Non-string values are
    invalid.
  * `termgrace` is an optional number of seconds to wait between
