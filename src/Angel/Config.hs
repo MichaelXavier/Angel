@@ -24,6 +24,8 @@ import Data.Configurator.Types ( Value(Number, String, Bool)
                                , Name )
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
+import Data.List ( nub
+                 , foldl' )
 import Data.Maybe ( isNothing
                   , isJust )
 import Data.Monoid ( (<>) )
@@ -64,12 +66,19 @@ buildConfigMap = HM.foldlWithKey' addToMap M.empty . addDefaults
       where (basekey, '.':localkey) = break (== '.') $ T.unpack n
 
 addDefaults :: HM.HashMap Name Value -> HM.HashMap Name Value
-addDefaults conf
-  | HM.member graceKey conf = conf
-  | otherwise = HM.insert graceKey defaultGrace conf
+addDefaults conf = foldl' addDefault conf progs
   where
-    graceKey = "grace"
+    graceKey prog = prog <> ".grace"
+    progs = programNames conf
+    addDefault conf' prog
+      | HM.member (graceKey prog) conf' = conf'
+      | otherwise = HM.insert (graceKey prog) defaultGrace conf
     defaultGrace = Bool False
+
+programNames :: HM.HashMap Name a -> [Name]
+programNames = nub . filter nnullN . map extractName . HM.keys
+  where
+    extractName = T.takeWhile (/= '.')
 
 checkConfigValues :: SpecKey -> IO SpecKey
 checkConfigValues progs = mapM_ checkProgram (M.elems progs) >> return progs
@@ -210,3 +219,6 @@ expandProgramPaths prog = do exec'       <- maybeExpand $ exec prog
                                            workingDir = workingDir',
                                            pidFile    = pidFile' }
     where maybeExpand = T.traverse expandPath
+
+nnullN :: Name -> Bool
+nnullN = not . T.null
