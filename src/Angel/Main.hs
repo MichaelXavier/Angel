@@ -1,4 +1,4 @@
-module Main (main) where 
+module Main (main) where
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (newEmptyMVar,
@@ -61,7 +61,7 @@ runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath configPath = do
     hSetBuffering stdout LineBuffering
     hSetBuffering stderr LineBuffering
-    let logger' = logger "main" 
+    let logger' = logger "main"
     logger' "Angel started"
 
     logger' $ "Using config file: " ++ configPath
@@ -93,7 +93,7 @@ runWithConfigPath configPath = do
     atomically $ do
         cfg <- readTVar sharedGroupConfig
         writeTVar sharedGroupConfig cfg {spec = M.empty}
-    logger' "  2. Forcing sync to kill running going"
+    logger' "  2. Forcing sync to kill running processes"
     syncSupervisors sharedGroupConfig
     logger' "That's all folks!"
 
