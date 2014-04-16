@@ -26,7 +26,8 @@ import Control.Concurrent.STM ( TVar
                               , readTVar
                               , atomically )
 import qualified Data.Map as M
-import Angel.Log ( logger )
+import Angel.Log ( logger
+                 , programLogger )
 import Angel.Data ( Program( delay
                            , exec
                            , logExec
@@ -93,9 +94,7 @@ supervise sharedGroupConfig id' = do
 
             startMaybeWithPidFile procSpec mPfile $ \pHandle -> do
               updateRunningPid my_spec (Just pHandle)
-              logger' "RUNNING"
-              waitForProcess pHandle
-              logger' "ENDED"
+              logProcess logger' pHandle
               updateRunningPid my_spec Nothing
 
             cfg' <- atomically $ readTVar sharedGroupConfig
@@ -109,7 +108,7 @@ supervise sharedGroupConfig id' = do
         )
 
     where
-        logger' = logger $ "- program: " ++ id' ++ " -"
+        logger' = programLogger id'
         cmdSplit fullcmd = (head parts, tail parts)
             where parts = (filter (/="") . map strip . split ' ') fullcmd
 
@@ -140,16 +139,26 @@ supervise sharedGroupConfig id' = do
 
                 attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
 
-                logger' "Spawning process"
-                (inPipe, _, _, _) <- createProcess (proc cmd args){
+                logger' "Spawning logger process"
+                (inPipe, _, _, logpHandle) <- createProcess (proc cmd args){
                   std_out = attachOut,
                   std_err = attachOut,
                   std_in  = CreatePipe,
                   cwd     = workingDir my_spec
                 }
 
+                forkIO $ logProcess logExecLogger logpHandle
+
                 return (UseHandle (fromJust inPipe),
                         UseHandle (fromJust inPipe))
+              where
+                logExecLogger = programLogger $ "logger for " ++ id'
+
+logProcess :: (String -> IO ()) -> ProcessHandle -> IO ()
+logProcess logSink pHandle = do
+  logSink "RUNNING"
+  waitForProcess pHandle
+  logSink "ENDED"
 
 --TODO: paralellize
 killProcesses :: [KillDirective] -> IO ()

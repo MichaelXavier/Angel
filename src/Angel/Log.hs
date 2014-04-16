@@ -1,5 +1,6 @@
 module Angel.Log ( cleanCalendar
-                 , logger) where
+                 , logger
+                 , programLogger ) where
 
 import Data.Time.LocalTime (ZonedTime,
                             getZonedTime)
@@ -18,3 +19,6 @@ logger :: String -> String -> IO ()
 logger lname msg = do 
     zt <- getZonedTime
     printf "[%s] {%s} %s\n" (cleanCalendar zt) lname msg
+
+programLogger :: String -> (String -> IO ())
+programLogger id' = logger $ "- program: " ++ id' ++ " -"
