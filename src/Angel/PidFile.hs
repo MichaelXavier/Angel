@@ -2,7 +2,8 @@ module Angel.PidFile ( startMaybeWithPidFile
                      , startWithPidFile
                      , clearPIDFile) where
 
-import Control.Exception.Base (finally)
+import Control.Exception.Base ( finally
+                              , onException )
 
 import Control.Monad (when)
 import System.Process ( CreateProcess
@@ -17,17 +18,30 @@ import System.Process.Internals ( PHANDLE
 import System.Posix.Files ( removeLink
                           , fileExist)
 
-startMaybeWithPidFile :: CreateProcess -> Maybe FilePath -> (ProcessHandle -> IO a) -> IO a
-startMaybeWithPidFile procSpec (Just pidFile) = startWithPidFile procSpec pidFile
-startMaybeWithPidFile procSpec Nothing        = withPHandle procSpec
+startMaybeWithPidFile :: CreateProcess
+                      -> Maybe FilePath
+                      -> (ProcessHandle -> IO a)
+                      -> (ProcessHandle -> IO a)
+                      -> IO a
+startMaybeWithPidFile procSpec (Just pidFile) action onPidError = startWithPidFile procSpec pidFile action onPidError
+startMaybeWithPidFile procSpec Nothing action _ = withPHandle procSpec action
 
-startWithPidFile :: CreateProcess -> FilePath -> (ProcessHandle -> IO a) -> IO a
-startWithPidFile procSpec pidFile action =
+startWithPidFile :: CreateProcess
+                 -> FilePath
+                 -> (ProcessHandle -> IO a)
+                 -> (ProcessHandle -> IO a)
+                 -> IO a
+startWithPidFile procSpec pidFile action onPidError =
   withPHandle procSpec $ \pHandle -> do
     mPid               <-  getPID pHandle
-    maybe (return ()) write mPid
-    action pHandle `finally` clearPIDFile pidFile
-  where write = writePID pidFile
+    case mPid of
+      Just pid -> write pid pHandle
+      Nothing  -> proceed pHandle
+  where
+    write pid pHandle = do
+      writePID pidFile pid `onException` onPidError pHandle -- re-raises
+      proceed pHandle
+    proceed pHandle = action pHandle `finally` clearPIDFile pidFile
 
 withPHandle :: CreateProcess -> (ProcessHandle -> IO a) -> IO a
 withPHandle procSpec action = do
