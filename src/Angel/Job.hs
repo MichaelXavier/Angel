@@ -88,14 +88,14 @@ supervise sharedGroupConfig id' = do
             }
 
             let mPfile = pidFile my_spec
+            let onPidError = killProcess . toKillDirective my_spec
 
             logger' $ "Spawning process with env " ++ show (env procSpec)
 
-
-            startMaybeWithPidFile procSpec mPfile $ \pHandle -> do
+            startMaybeWithPidFile procSpec mPfile (\pHandle -> do
               updateRunningPid my_spec (Just pHandle)
               logProcess logger' pHandle
-              updateRunningPid my_spec Nothing
+              updateRunningPid my_spec Nothing) onPidError
 
             cfg' <- atomically $ readTVar sharedGroupConfig
             if M.notMember id' (spec cfg')
