@@ -88,7 +88,8 @@ supervise sharedGroupConfig id' = do
             }
 
             let mPfile = pidFile my_spec
-            let onPidError = killProcess . toKillDirective my_spec
+            let onPidError ph = do logger' "Failed to create pidfile"
+                                   killProcess $ toKillDirective my_spec ph
 
             logger' $ "Spawning process with env " ++ show (env procSpec)
 
