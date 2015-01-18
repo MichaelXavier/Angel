@@ -248,28 +248,12 @@ Testing
 -------
 If you prefer to stick with haskell tools, use cabal to build the package.
 
-If you have Ruby installed, I've set up a Rakefile for assisting in the
-build/testing/sandboxing/dependency process. This isn't necessary to build or
-test Angel, but it makes it easier. Run:
+
+You can run the test suite with
 
 ```
-gem install bundler # if you don't have it already
-bundle install
-rake --tasks
+make test
 ```
-
-If you're using cabal 0.17 or later, and I suggest you do, run
-
-```
-rake sandbox
-```
-Run the full test suite with
-```
-rake test
-```
-
-You can also use `guard start` which will watch for changes made to any source/test
-files and re-run the tests for a rapid feedback cycle.
 
 FAQ
 ---

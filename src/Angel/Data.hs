@@ -4,6 +4,7 @@ module Angel.Data ( GroupConfig(..)
                   , ProgramId
                   , FileRequest
                   , Program(..)
+                  , RunState(..)
                   , Spec
                   , KillDirective(..)
                   , defaultProgram
@@ -27,7 +28,14 @@ data GroupConfig = GroupConfig {
 
 -- |map program ids to relevant structure
 type SpecKey = M.Map ProgramId Program
-type RunKey = M.Map ProgramId (Program, Maybe ProcessHandle)
+type RunKey = M.Map ProgramId RunState
+
+data RunState = RunState {
+  rsProgram :: Program,
+  rsHandle :: Maybe ProcessHandle,
+  rsLogHandle :: Maybe ProcessHandle
+}
+
 type ProgramId = String
 type FileRequest = (String, TChan (Maybe Handle))
 
@@ -47,8 +55,8 @@ data Program = Program {
 } deriving (Show, Eq, Ord)
 
 -- |represents all the data needed to handle terminating a process
-data KillDirective = SoftKill String ProcessHandle |
-                     HardKill String ProcessHandle Int
+data KillDirective = SoftKill String ProcessHandle (Maybe ProcessHandle) |
+                     HardKill String ProcessHandle (Maybe ProcessHandle) Int
 
 -- instance Show KillDirective where
 --   show (SoftKill _)       = "SoftKill"

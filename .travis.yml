@@ -1,2 +1,2 @@
 language:  haskell
-script: "bundle && bundle exec rake test"
+script: "cabal install --only-dependencies --enable-tests && make test"

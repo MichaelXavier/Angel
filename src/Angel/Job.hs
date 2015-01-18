@@ -42,6 +42,7 @@ import Angel.Data ( Program( delay
                   , spec
                   , running
                   , KillDirective(SoftKill, HardKill)
+                  , RunState(..)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
@@ -76,7 +77,7 @@ supervise sharedGroupConfig id' = do
         (logger' "QUIT (missing from config on restart)")
 
         (do
-            (attachOut, attachErr) <- makeFiles my_spec cfg
+            (attachOut, attachErr, lHandle) <- makeFiles my_spec cfg
 
             let (cmd, args) = cmdSplit . fromJust . exec $ my_spec
 
@@ -88,15 +89,15 @@ supervise sharedGroupConfig id' = do
             }
 
             let mPfile = pidFile my_spec
-            let onPidError ph = do logger' "Failed to create pidfile"
-                                   killProcess $ toKillDirective my_spec ph
+            let onPidError lph ph = do logger' "Failed to create pidfile"
+                                       killProcess $ toKillDirective my_spec ph lph
 
             logger' $ "Spawning process with env " ++ show (env procSpec)
 
             startMaybeWithPidFile procSpec mPfile (\pHandle -> do
-              updateRunningPid my_spec (Just pHandle)
+              updateRunningPid my_spec (Just pHandle) lHandle
               logProcess logger' pHandle
-              updateRunningPid my_spec Nothing) onPidError
+              updateRunningPid my_spec Nothing Nothing) (onPidError lHandle)
 
             cfg' <- atomically $ readTVar sharedGroupConfig
             if M.notMember id' (spec cfg')
@@ -114,10 +115,14 @@ supervise sharedGroupConfig id' = do
             where parts = (filter (/="") . map strip . split ' ') fullcmd
 
         find_me cfg = M.findWithDefault defaultProgram id' (spec cfg)
-        updateRunningPid my_spec mpid = atomically $ do
+        updateRunningPid my_spec mpid mlpid = atomically $ do
             wcfg <- readTVar sharedGroupConfig
+            let rstate = RunState { rsProgram = my_spec
+                                  , rsHandle = mpid
+                                  , rsLogHandle = mlpid
+                                  }
             writeTVar sharedGroupConfig wcfg{
-              running=M.insertWith' const id' (my_spec, mpid) (running wcfg)
+              running=M.insertWith' const id' rstate (running wcfg)
             }
 
         makeFiles my_spec cfg =
@@ -133,7 +138,7 @@ supervise sharedGroupConfig id' = do
                 let useerr = fromMaybe defaultStderr $ stderr my_spec
                 attachErr <- UseHandle `fmap` getFile useerr cfg
 
-                return (attachOut, attachErr)
+                return (attachOut, attachErr, Nothing)
 
             logWithExec path = do
                 let (cmd, args) = cmdSplit path
@@ -151,7 +156,8 @@ supervise sharedGroupConfig id' = do
                 forkIO $ logProcess logExecLogger logpHandle
 
                 return (UseHandle (fromJust inPipe),
-                        UseHandle (fromJust inPipe))
+                        UseHandle (fromJust inPipe),
+                        Just logpHandle)
               where
                 logExecLogger = programLogger $ "logger for " ++ id'
 
@@ -166,11 +172,11 @@ killProcesses :: [KillDirective] -> IO ()
 killProcesses = mapM_ killProcess
 
 killProcess :: KillDirective -> IO ()
-killProcess (SoftKill n pid) = do
+killProcess (SoftKill n pid lpid) = do
   logger' $ "Soft killing " ++ n
   softKillProcessHandle pid
   where logger' = logger "process-killer"
-killProcess (HardKill n pid grace) = do
+killProcess (HardKill n pid lpid grace) = do
   logger' $ "Attempting soft kill " ++ n ++ " before hard killing"
   softKillProcessHandle pid
   logger' $ "Waiting " ++ show grace ++ " seconds for " ++ n ++ " to die"
@@ -214,8 +220,12 @@ wrapProcess sharedGroupConfig id' = do
                     case M.lookup id' runmap of
                         Just _ -> return False
                         Nothing -> do
+                            let rstate = RunState { rsProgram = target
+                                                  , rsHandle = Nothing
+                                                  , rsLogHandle = Nothing
+                                                  }
                             writeTVar sharedGroupConfig cfg{running=
-                                M.insert id' (target, Nothing) runmap}
+                                M.insert id' rstate runmap}
                             return True
 
 -- |diff the requested config against the actual run state, and
@@ -241,19 +251,19 @@ mustStart cfg = map fst $ filter (isNew $ running cfg) $ M.assocs (spec cfg)
 --TODO: make private
 mustKill :: GroupConfig -> ([Program], [KillDirective])
 mustKill cfg = unzip targets
-  where runningAndDifferent :: (ProgramId, (Program, Maybe ProcessHandle)) -> Maybe (Program, KillDirective)
-        runningAndDifferent (_, (_, Nothing))    = Nothing
-        runningAndDifferent (id', (pg, Just pid))
-         | M.notMember id' specMap || M.findWithDefault defaultProgram id' specMap /= pg = Just (pg, toKillDirective pg pid)
+  where runningAndDifferent :: (ProgramId, RunState) -> Maybe (Program, KillDirective)
+        runningAndDifferent (_, RunState {rsHandle = Nothing})    = Nothing
+        runningAndDifferent (id', RunState {rsProgram = pg, rsHandle = Just pid, rsLogHandle = lpid})
+         | M.notMember id' specMap || M.findWithDefault defaultProgram id' specMap /= pg = Just (pg, toKillDirective pg pid lpid)
          | otherwise                                                                     = Nothing
         targets = mapMaybe runningAndDifferent allRunning
         specMap = spec cfg
         allRunning = M.assocs $ running cfg
 
-toKillDirective :: Program -> ProcessHandle -> KillDirective
+toKillDirective :: Program -> ProcessHandle -> Maybe ProcessHandle -> KillDirective
 toKillDirective D.Program { name = n
-                          , termGrace = Just g } ph = HardKill n ph g
-toKillDirective D.Program { name = n } ph           = SoftKill n ph
+                          , termGrace = Just g } ph lph = HardKill n ph lph g
+toKillDirective D.Program { name = n } ph lph           = SoftKill n ph lph
 
 -- |periodically run the supervisor sync independent of config reload,
 -- |just in case state gets funky b/c of theoretically possible timing

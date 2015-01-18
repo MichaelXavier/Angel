@@ -119,4 +119,4 @@ test-suite spec
   Build-depends: text>=0.11
   Build-depends: unix-process-conduit >= 0.2.0
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
-  Ghc-Options: -threaded -rtsopts
+  Ghc-Options: -threaded -rtsopts -with-rtsopts=-N
