@@ -86,7 +86,6 @@ Executable angel
   Other-modules: Angel.Files,
                  Angel.Config,
                  Angel.Data,
-                 Angel.Files,
                  Angel.Job,
                  Angel.Process
                  Angel.Log,
