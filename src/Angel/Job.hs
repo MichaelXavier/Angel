@@ -175,6 +175,9 @@ killProcess :: KillDirective -> IO ()
 killProcess (SoftKill n pid lpid) = do
   logger' $ "Soft killing " ++ n
   softKillProcessHandle pid
+  case lpid of
+    Just lph -> killProcess (SoftKill n lph Nothing)
+    Nothing -> return ()
   where logger' = logger "process-killer"
 killProcess (HardKill n pid lpid grace) = do
   logger' $ "Attempting soft kill " ++ n ++ " before hard killing"
@@ -186,6 +189,9 @@ killProcess (HardKill n pid lpid grace) = do
   dead <- isProcessHandleDead pid
 
   unless dead $ logger' ("Hard killing " ++ n) >> hardKillProcessHandle pid
+  case lpid of
+    Just lph -> killProcess (HardKill n lph Nothing grace)
+    Nothing -> return ()
   where logger' = logger "process-killer"
 
 cleanPidfiles :: [Program] -> IO ()

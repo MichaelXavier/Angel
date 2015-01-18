@@ -43,6 +43,12 @@ spec =
         ph <- launchStubbornJob
         killProcess $ HardKill "thing" ph Nothing 1
         patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False) --maybe
+    describe "with a logger" $
+      it "cleanly kills well-behaved loggers" $ do
+        ph <- launchCompliantJob
+        lph <- launchCompliantJob
+        killProcess $ SoftKill "thing" ph (Just lph)
+        patientlyGetProcessExitCode lph `shouldReturn` (Just $ Exited ExitSuccess)
 
 launchCompliantJob :: IO ProcessHandle
 launchCompliantJob = launchJob "CompliantJob"
