@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Angel.JobSpec (spec) where
 
 import Angel.Job (killProcess)
@@ -41,7 +42,11 @@ spec =
       it "forcefully kills stubborn processes" $ do
         ph <- launchStubbornJob
         killProcess $ HardKill "thing" ph Nothing 1
-        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False) --maybe
+#if MIN_VERSION_unix(2,7,0)
+        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False)
+#else
+        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL)
+#endif
     describe "with a logger" $
       it "cleanly kills well-behaved loggers" $ do
         ph <- launchCompliantJob
