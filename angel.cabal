@@ -79,7 +79,6 @@ Executable angel
   Build-depends: time
   Build-depends: old-locale
   Build-depends: text>=0.11
-  Build-depends: unix-process-conduit >= 0.2.0
 
 
   -- Modules not exported by this package.
@@ -116,6 +115,5 @@ test-suite spec
   Build-depends: time
   Build-depends: old-locale
   Build-depends: text>=0.11
-  Build-depends: unix-process-conduit >= 0.2.0
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   Ghc-Options: -threaded -rtsopts -with-rtsopts=-N

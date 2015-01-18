@@ -6,7 +6,6 @@ import Angel.Process ( getProcessHandleStatus
 import Angel.Data (KillDirective(..))
 import Angel.Util (sleepSecs)
 
-import qualified Data.Conduit.Process.Unix as U
 import System.Exit (ExitCode(..))
 import System.Posix.Directory (getWorkingDirectory)
 import System.Posix.Signals (sigKILL)
