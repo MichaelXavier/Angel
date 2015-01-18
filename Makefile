@@ -9,6 +9,7 @@ test/test_jobs/%: test/test_jobs/%.hs
 	ghc --make $< -o $@
 
 dist/build/spec/spec:
+	cabal configure --enable-tests
 	cabal build spec
 
 .PHONY: test dist/build/spec/spec build
