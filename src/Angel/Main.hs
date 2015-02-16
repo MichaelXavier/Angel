@@ -52,7 +52,7 @@ handleArgs ["--help"]   = printHelp
 handleArgs ["-h"]       = printHelp
 handleArgs []           = printHelp
 handleArgs [configPath] = runWithConfigPath configPath
-handleArgs _            = errorExit "expected a single config file. Run with --help for usasge."
+handleArgs _            = errorExit "expected a single config file. Run with --help for usage."
 
 printHelp :: IO ()
 printHelp = putStrLn "Usage: angel [--help] CONFIG_FILE" >> exitSuccess
