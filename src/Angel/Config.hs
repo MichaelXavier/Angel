@@ -31,7 +31,8 @@ import Data.Maybe ( isNothing
 import Data.Monoid ( (<>) )
 import qualified Data.Text as T
 import Angel.Job ( syncSupervisors )
-import Angel.Data ( Program( exec
+import Angel.Data ( Program( user
+                           , exec
                            , delay
                            , stdout
                            , stderr
@@ -91,6 +92,9 @@ checkConfigValues progs = mapM_ checkProgram (M.elems progs) >> return progs
 modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog {exec = Just (T.unpack s)}
 modifyProg _ "exec" _ = error "wrong type for field 'exec'; string required"
+
+modifyProg prog "user" (String s) = prog{user = Just (T.unpack s)}
+modifyProg _ "user" _ = error "wrong type for field 'user'; string required"
 
 modifyProg prog "delay" (Number n) | n < 0     = error "delay value must be >= 0"
                                    | otherwise = prog{delay = Just $ round n}

@@ -34,7 +34,6 @@ import Angel.Data (GroupConfig(GroupConfig),
                    spec)
 import Angel.Job (pollStale,
                   syncSupervisors)
-import Angel.Files (startFileManager)
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
 -- |to make the configuration monitor loop cycle/reload
@@ -82,7 +81,6 @@ runWithConfigPath configPath = do
 
     -- Fork off an ongoing state monitor to watch for inconsistent state
     forkIO $ pollStale sharedGroupConfig
-    forkIO $ startFileManager fileReqChan
 
     -- Finally, run the config load/monitor thread
     forkIO $ forever $ monitorConfig configPath sharedGroupConfig wakeSig

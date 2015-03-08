@@ -5,7 +5,7 @@ module Angel.Job ( syncSupervisors
 import Control.Exception ( finally )
 import Control.Monad ( unless
                      , when
-                     , forever)
+                     , forever )
 import Data.Maybe ( mapMaybe
                   , fromMaybe
                   , fromJust )
@@ -20,6 +20,12 @@ import System.Process ( createProcess
                       , cwd
                       , env
                       , StdStream(UseHandle, CreatePipe) )
+import qualified System.Posix.Process as P ( forkProcess
+                            , getProcessStatus )
+import qualified System.Posix.User as U (setUserID,
+                          getUserEntryForName,
+                          UserEntry(userID) )
+
 import Control.Concurrent ( forkIO )
 import Control.Concurrent.STM ( TVar
                               , writeTVar
@@ -62,7 +68,12 @@ import Angel.PidFile ( startMaybeWithPidFile
 ifEmpty :: String -> IO () -> IO () -> IO ()
 ifEmpty s ioa iob = if s == "" then ioa else iob
 
--- |launch the program specified by `id`, opening (and closing) the
+switchUser :: String -> IO ()
+switchUser name = do
+    userEntry <- U.getUserEntryForName name
+    U.setUserID $ U.userID userEntry
+
+-- |launch the program specified by `id'`, opening (and closing) the
 -- |appropriate fds for logging.  When the process dies, either b/c it was
 -- |killed by a monitor, killed by a system user, or ended execution naturally,
 -- |re-examine the desired run config to determine whether to re-run it.  if so,
@@ -71,39 +82,25 @@ supervise :: TVar GroupConfig -> String -> IO ()
 supervise sharedGroupConfig id' = do
     logger' "START"
     cfg <- atomically $ readTVar sharedGroupConfig
-    let my_spec = find_me cfg
-    ifEmpty (name my_spec)
+    let my_spec = find_spec cfg id'
 
+    ifEmpty (name my_spec)
         (logger' "QUIT (missing from config on restart)")
 
         (do
-            (attachOut, attachErr, lHandle) <- makeFiles my_spec cfg
+            let
+                logProcessSpawn Nothing = return ()
+                logProcessSpawn (Just (cmd, args)) = do
+                    logger' $ "Spawning process: " ++ cmd ++ " with env " ++ ((show . D.env) my_spec) ++ (maybe "" (" as user: " ++) (D.user my_spec))
+                    superviseSpawner my_spec cfg cmd args sharedGroupConfig id' onValidHandle onPidError
 
-            let (cmd, args) = cmdSplit . fromJust . exec $ my_spec
-
-            let procSpec = (proc cmd args) {
-              std_out = attachOut,
-              std_err = attachErr,
-              cwd = workingDir my_spec,
-              env = Just $ D.env my_spec
-            }
-
-            let mPfile = pidFile my_spec
-            let onPidError lph ph = do logger' "Failed to create pidfile"
-                                       killProcess $ toKillDirective my_spec ph lph
-
-            logger' $ "Spawning process with env " ++ show (env procSpec)
-
-            startMaybeWithPidFile procSpec mPfile (\pHandle -> do
-              updateRunningPid my_spec (Just pHandle) lHandle
-              logProcess logger' pHandle
-              updateRunningPid my_spec Nothing Nothing) (onPidError lHandle)
+            logProcessSpawn $ fmap (cmdSplit) (exec my_spec)
 
             cfg' <- atomically $ readTVar sharedGroupConfig
             if M.notMember id' (spec cfg')
-              then logger'  "QUIT"
+              then logger' "QUIT"
               else do
-                logger'  "WAITING"
+                logger' "WAITING"
                 sleepSecs . fromMaybe defaultDelay . delay $ my_spec
                 logger'  "RESTART"
                 supervise sharedGroupConfig id'
@@ -111,10 +108,21 @@ supervise sharedGroupConfig id' = do
 
     where
         logger' = programLogger id'
+
+        onValidHandle a_spec lph ph = do
+          updateRunningPid a_spec (Just ph) lph
+          logProcess logger' ph -- This will not return until the process has exited
+          updateRunningPid a_spec Nothing Nothing
+
+        onPidError a_spec lph ph = do
+            logger' "Failed to create pidfile"
+            killProcess $ toKillDirective a_spec ph lph
+
         cmdSplit fullcmd = (head parts, tail parts)
             where parts = (filter (/="") . map strip . split ' ') fullcmd
 
-        find_me cfg = M.findWithDefault defaultProgram id' (spec cfg)
+        find_spec cfg id' = M.findWithDefault defaultProgram id' (spec cfg)
+
         updateRunningPid my_spec mpid mlpid = atomically $ do
             wcfg <- readTVar sharedGroupConfig
             let rstate = RunState { rsProgram = my_spec
@@ -125,41 +133,66 @@ supervise sharedGroupConfig id' = do
               running=M.insertWith' const id' rstate (running wcfg)
             }
 
+superviseSpawner :: Program -> GroupConfig -> String -> [String] -> TVar GroupConfig -> String -> (Program -> Maybe ProcessHandle -> ProcessHandle -> IO ()) -> (Program -> Maybe ProcessHandle -> ProcessHandle -> IO ()) -> IO ()
+superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction onPidErrorAction = do
+
+    angelPid <- P.forkProcess $ do
+        maybe (return ()) switchUser (D.user the_spec)
+        -- start the logger process or if non is configured
+        -- use the files specified in the configuration
+        (attachOut, attachErr, lHandle) <- makeFiles the_spec cfg
+ 
+        let
+            procSpec = (proc cmd args) {
+              std_out = attachOut,
+              std_err = attachErr,
+              cwd = workingDir the_spec,
+              env = Just $ D.env the_spec
+            }
+
+        startMaybeWithPidFile procSpec (pidFile the_spec) (onValidHandleAction the_spec lHandle) (onPidErrorAction the_spec lHandle)
+
+    P.getProcessStatus True True angelPid
+    return () 
+
+    where
+        cmdSplit fullcmd = (head parts, tail parts)
+            where parts = (filter (/="") . map strip . split ' ') fullcmd
+
         makeFiles my_spec cfg =
             case logExec my_spec of
                 Just path -> logWithExec path
                 Nothing -> logWithFiles
+            where
+                logWithFiles = do
+                    let useout = fromMaybe defaultStdout $ stdout the_spec
+                    attachOut <- UseHandle `fmap` getFile useout cfg
 
-          where
-            logWithFiles = do
-                let useout = fromMaybe defaultStdout $ stdout my_spec
-                attachOut <- UseHandle `fmap` getFile useout cfg
+                    let useerr = fromMaybe defaultStderr $ stderr the_spec
+                    attachErr <- UseHandle `fmap` getFile useerr cfg
 
-                let useerr = fromMaybe defaultStderr $ stderr my_spec
-                attachErr <- UseHandle `fmap` getFile useerr cfg
+                    return (attachOut, attachErr, Nothing)
 
-                return (attachOut, attachErr, Nothing)
+                logWithExec path = do
+                    let (cmd, args) = cmdSplit path
 
-            logWithExec path = do
-                let (cmd, args) = cmdSplit path
+                    attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
 
-                attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
+                    (programLogger id') "Spawning logger process"
+                    (inPipe, _, _, logpHandle) <- createProcess (proc cmd args){
+                      std_out = attachOut,
+                      std_err = attachOut,
+                      std_in  = CreatePipe,
+                      cwd     = workingDir my_spec
+                    }
 
-                logger' "Spawning logger process"
-                (inPipe, _, _, logpHandle) <- createProcess (proc cmd args){
-                  std_out = attachOut,
-                  std_err = attachOut,
-                  std_in  = CreatePipe,
-                  cwd     = workingDir my_spec
-                }
+                    forkIO $ logProcess logExecLogger logpHandle
 
-                forkIO $ logProcess logExecLogger logpHandle
-
-                return (UseHandle (fromJust inPipe),
-                        UseHandle (fromJust inPipe),
-                        Just logpHandle)
-              where
-                logExecLogger = programLogger $ "logger for " ++ id'
+                    return (UseHandle (fromJust inPipe),
+                            UseHandle (fromJust inPipe),
+                            Just logpHandle)
+                    where
+                        logExecLogger = programLogger $ "logger for " ++ id'
 
 logProcess :: (String -> IO ()) -> ProcessHandle -> IO ()
 logProcess logSink pHandle = do
@@ -258,7 +291,7 @@ mustStart cfg = map fst $ filter (isNew $ running cfg) $ M.assocs (spec cfg)
 mustKill :: GroupConfig -> ([Program], [KillDirective])
 mustKill cfg = unzip targets
   where runningAndDifferent :: (ProgramId, RunState) -> Maybe (Program, KillDirective)
-        runningAndDifferent (_, RunState {rsHandle = Nothing})    = Nothing
+        runningAndDifferent (_, RunState {rsHandle = Nothing}) = Nothing
         runningAndDifferent (id', RunState {rsProgram = pg, rsHandle = Just pid, rsLogHandle = lpid})
          | M.notMember id' specMap || M.findWithDefault defaultProgram id' specMap /= pg = Just (pg, toKillDirective pg pid lpid)
          | otherwise                                                                     = Nothing

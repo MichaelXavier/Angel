@@ -44,6 +44,7 @@ type FileRequest = (String, TChan (Maybe Handle))
 data Program = Program {
   name       :: String,
   exec       :: Maybe String,
+  user       :: Maybe String,
   delay      :: Maybe Int,
   stdout     :: Maybe String,
   stderr     :: Maybe String,
@@ -68,7 +69,7 @@ type Spec = [Program]
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
 defaultProgram :: Program
-defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing Nothing [] Nothing
+defaultProgram = Program "" Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing [] Nothing
 
 defaultDelay :: Int
 defaultDelay = 5

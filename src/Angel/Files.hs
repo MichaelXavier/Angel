@@ -1,44 +1,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-module Angel.Files ( getFile
-                   , startFileManager ) where
+module Angel.Files ( getFile ) where
 
-import Control.Exception ( try
-                         , SomeException )
-import Control.Concurrent.STM ( readTChan
-                              , writeTChan
-                              , atomically
-                              , TChan
-                              , newTChanIO )
-import Control.Monad (forever)
 import System.IO ( Handle
-                 , hClose
                  , openFile
                  , IOMode(AppendMode) )
-import GHC.IO.Handle (hDuplicate)
-import Angel.Data ( GroupConfig
-                  , fileRequest
-                  , FileRequest )
 
-startFileManager :: TChan FileRequest -> IO b
-startFileManager req = forever $ fileManager req
-
-fileManager :: TChan FileRequest -> IO ()
-fileManager req = do 
-    (path, resp) <- atomically $ readTChan req
-    mh <- try $ openFile path AppendMode
-    case mh of
-        Right hand -> do
-            hand' <- hDuplicate hand
-            hClose hand
-            atomically $ writeTChan resp (Just hand')
-        Left (_ :: SomeException) -> atomically $ writeTChan resp Nothing
-    fileManager req
+import Angel.Data ( GroupConfig )
 
 getFile :: String -> GroupConfig -> IO Handle
-getFile path cfg = do
-    resp <- newTChanIO
-    atomically $ writeTChan (fileRequest cfg) (path, resp)
-    mh <- atomically $ readTChan resp
-    case mh of
-        Just hand -> return hand
-        Nothing -> error $ "could not open stdout/stderr file " ++ path
+getFile path _ = openFile path AppendMode
