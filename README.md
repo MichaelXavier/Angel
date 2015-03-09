@@ -132,6 +132,8 @@ Each program that should be supervised starts a `program-id` block:
 Then, a series of corresponding configuration commands follow:
 
  * `exec` is the exact command line to run (required)
+ * `user` is the user the program will run as (optional, defaults to the
+   user angel is launched as)
  * `stdout` is a path to a file where the program's standard output 
     should be appended (optional, defaults to /dev/null)
  * `stderr` is a path to a file where the program's standard error
