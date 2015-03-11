@@ -12,6 +12,7 @@ import Control.Concurrent.STM (TVar,
                                readTVar,
                                newTVarIO)
 import Control.Monad (forever)
+import System.Console.GetOpt
 import System.Environment (getArgs)
 import System.Exit (exitFailure,
                     exitSuccess)
@@ -44,17 +45,37 @@ handleExit :: MVar Bool -> IO ()
 handleExit mv = putMVar mv True
 
 main :: IO ()
-main = handleArgs =<< getArgs
+main = do
+  (os, files, errs) <- getOpt RequireOrder [verbosityDesc] =<< getArgs
+  case errs of
+    [] -> case files of
+      [] -> 
+  runWithOpts =<< =<< getArgs
 
-handleArgs :: [String] -> IO ()
-handleArgs ["--help"]   = printHelp
-handleArgs ["-h"]       = printHelp
-handleArgs []           = printHelp
-handleArgs [configPath] = runWithConfigPath configPath
-handleArgs _            = errorExit "expected a single config file. Run with --help for usage."
+opts = info (helper <*> opts')
+       (fullDesc <> header "angel - Process management and supervision daemon")
+  where
+    opts' = Options
+            <$> strArgument (metavar "CONFIG_FILE")
+            <*> optional (option auto (short 'v' <> value V2 <> showDefault))
 
-printHelp :: IO ()
-printHelp = putStrLn "Usage: angel [--help] CONFIG_FILE" >> exitSuccess
+optDescs :: [OptDesc ]
+optDescs = [verbo]
+
+
+-- handleArgs :: [String] -> IO ()
+-- handleArgs ["--help"]   = printHelp
+-- handleArgs ["-h"]       = printHelp
+-- handleArgs []           = printHelp
+-- handleArgs [configPath] = runWithConfigPath configPath
+-- handleArgs _            = errorExit "expected a single config file. Run with --help for usage."
+
+-- printHelp :: IO ()
+-- printHelp = putStrLn "Usage: angel [--help] CONFIG_FILE" >> exitSuccess
+
+runWithOpts :: Options -> IO ()
+runWithOpts Options {..} = undefined
+
 
 runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath configPath = do

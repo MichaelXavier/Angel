@@ -2,10 +2,12 @@ module Angel.Job ( syncSupervisors
                  , killProcess -- for testing
                  , pollStale ) where
 
+import Control.Applicative ((<$>))
 import Control.Exception ( finally )
 import Control.Monad ( unless
                      , when
                      , forever )
+import Control.Monad.Reader (ask)
 import Data.Maybe ( mapMaybe
                   , fromMaybe
                   , fromJust )
@@ -31,6 +33,7 @@ import Control.Concurrent.STM ( TVar
                               , writeTVar
                               , readTVar
                               , atomically )
+import Control.Monad.IO.Class (liftIO)
 import qualified Data.Map as M
 import Angel.Log ( logger
                  , programLogger )
@@ -44,11 +47,14 @@ import Angel.Data ( Program( delay
                            , termGrace
                            , workingDir )
                   , ProgramId
+                  , AngelM
                   , GroupConfig
+                  , runAngelM
                   , spec
                   , running
                   , KillDirective(SoftKill, HardKill)
                   , RunState(..)
+                  , Verbosity(..)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
@@ -65,8 +71,8 @@ import Angel.Files ( getFile )
 import Angel.PidFile ( startMaybeWithPidFile
                      , clearPIDFile )
 
-ifEmpty :: String -> IO () -> IO () -> IO ()
-ifEmpty s ioa iob = if s == "" then ioa else iob
+ifEmpty :: String -> a -> a -> a
+ifEmpty s a b = if s == "" then a else b
 
 switchUser :: String -> IO ()
 switchUser name = do
@@ -78,31 +84,30 @@ switchUser name = do
 -- |killed by a monitor, killed by a system user, or ended execution naturally,
 -- |re-examine the desired run config to determine whether to re-run it.  if so,
 -- |tail call.
-supervise :: TVar GroupConfig -> String -> IO ()
+supervise :: TVar GroupConfig -> String -> AngelM ()
 supervise sharedGroupConfig id' = do
-    logger' "START"
-    cfg <- atomically $ readTVar sharedGroupConfig
+    logger' V2 "START"
+    cfg <- liftIO $ atomically $ readTVar sharedGroupConfig
     let my_spec = find_spec cfg id'
 
     ifEmpty (name my_spec)
-        (logger' "QUIT (missing from config on restart)")
-
+        (logger' V2 "QUIT (missing from config on restart)")
         (do
             let
                 logProcessSpawn Nothing = return ()
                 logProcessSpawn (Just (cmd, args)) = do
-                    logger' $ "Spawning process: " ++ cmd ++ " with env " ++ ((show . D.env) my_spec) ++ (maybe "" (" as user: " ++) (D.user my_spec))
-                    superviseSpawner my_spec cfg cmd args sharedGroupConfig id' onValidHandle onPidError
+                    logger' V1 $ "Spawning process: " ++ cmd ++ " with env " ++ ((show . D.env) my_spec) ++ (maybe "" (" as user: " ++) (D.user my_spec))
+                    superviseSpawner my_spec cfg cmd args sharedGroupConfig id' onValidHandle (\a b c -> onPidError a b c)
 
             logProcessSpawn $ fmap (cmdSplit) (exec my_spec)
 
-            cfg' <- atomically $ readTVar sharedGroupConfig
+            cfg' <- liftIO $ atomically $ readTVar sharedGroupConfig
             if M.notMember id' (spec cfg')
-              then logger' "QUIT"
+              then logger' V2 "QUIT"
               else do
-                logger' "WAITING"
-                sleepSecs . fromMaybe defaultDelay . delay $ my_spec
-                logger'  "RESTART"
+                logger' V2 "WAITING"
+                liftIO $ sleepSecs . fromMaybe defaultDelay . delay $ my_spec
+                logger' V2 "RESTART"
                 supervise sharedGroupConfig id'
         )
 
@@ -115,7 +120,7 @@ supervise sharedGroupConfig id' = do
           updateRunningPid a_spec Nothing Nothing
 
         onPidError a_spec lph ph = do
-            logger' "Failed to create pidfile"
+            logger' V2 "Failed to create pidfile"
             killProcess $ toKillDirective a_spec ph lph
 
         cmdSplit fullcmd = (head parts, tail parts)
@@ -123,7 +128,7 @@ supervise sharedGroupConfig id' = do
 
         find_spec cfg id' = M.findWithDefault defaultProgram id' (spec cfg)
 
-        updateRunningPid my_spec mpid mlpid = atomically $ do
+        updateRunningPid my_spec mpid mlpid = liftIO $ atomically $ do
             wcfg <- readTVar sharedGroupConfig
             let rstate = RunState { rsProgram = my_spec
                                   , rsHandle = mpid
@@ -133,15 +138,26 @@ supervise sharedGroupConfig id' = do
               running=M.insertWith' const id' rstate (running wcfg)
             }
 
-superviseSpawner :: Program -> GroupConfig -> String -> [String] -> TVar GroupConfig -> String -> (Program -> Maybe ProcessHandle -> ProcessHandle -> IO ()) -> (Program -> Maybe ProcessHandle -> ProcessHandle -> IO ()) -> IO ()
+superviseSpawner
+  :: Program
+  -> GroupConfig
+  -> String
+  -> [String]
+  -> TVar GroupConfig
+  -> String
+  -> (Program -> Maybe ProcessHandle -> ProcessHandle -> AngelM ())
+  -> (Program -> Maybe ProcessHandle -> ProcessHandle -> AngelM ())
+  -> AngelM ()
 superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction onPidErrorAction = do
-
-    angelPid <- P.forkProcess $ do
+    opts <- ask
+    let io = runAngelM opts
+    liftIO $ do
+      angelPid <- P.forkProcess $ do
         maybe (return ()) switchUser (D.user the_spec)
         -- start the logger process or if non is configured
         -- use the files specified in the configuration
-        (attachOut, attachErr, lHandle) <- makeFiles the_spec cfg
- 
+        (attachOut, attachErr, lHandle) <- io $ makeFiles the_spec cfg
+
         let
             procSpec = (proc cmd args) {
               std_out = attachOut,
@@ -150,10 +166,13 @@ superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction
               env = Just $ D.env the_spec
             }
 
-        startMaybeWithPidFile procSpec (pidFile the_spec) (onValidHandleAction the_spec lHandle) (onPidErrorAction the_spec lHandle)
+        startMaybeWithPidFile procSpec
+                              (pidFile the_spec)
+                              (io . onValidHandleAction the_spec lHandle)
+                              (io . onPidErrorAction the_spec lHandle)
 
-    P.getProcessStatus True True angelPid
-    return () 
+      P.getProcessStatus True True angelPid
+      return ()
 
     where
         cmdSplit fullcmd = (head parts, tail parts)
@@ -162,66 +181,70 @@ superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction
         makeFiles my_spec cfg =
             case logExec my_spec of
                 Just path -> logWithExec path
-                Nothing -> logWithFiles
+                Nothing -> liftIO logWithFiles
             where
                 logWithFiles = do
                     let useout = fromMaybe defaultStdout $ stdout the_spec
-                    attachOut <- UseHandle `fmap` getFile useout cfg
+                    attachOut <- UseHandle <$> getFile useout cfg
 
                     let useerr = fromMaybe defaultStderr $ stderr the_spec
-                    attachErr <- UseHandle `fmap` getFile useerr cfg
+                    attachErr <- UseHandle <$> getFile useerr cfg
 
                     return (attachOut, attachErr, Nothing)
 
                 logWithExec path = do
                     let (cmd, args) = cmdSplit path
 
-                    attachOut <- UseHandle `fmap` getFile "/dev/null" cfg
+                    attachOut <- UseHandle <$> liftIO (getFile "/dev/null" cfg)
 
-                    (programLogger id') "Spawning logger process"
-                    (inPipe, _, _, logpHandle) <- createProcess (proc cmd args){
-                      std_out = attachOut,
-                      std_err = attachOut,
-                      std_in  = CreatePipe,
-                      cwd     = workingDir my_spec
-                    }
+                    (programLogger id') V2 "Spawning logger process"
+                    opts <- ask
+                    liftIO $ do
+                      (inPipe, _, _, logpHandle) <- createProcess (proc cmd args){
+                        std_out = attachOut,
+                        std_err = attachOut,
+                        std_in  = CreatePipe,
+                        cwd     = workingDir my_spec
+                      }
 
-                    forkIO $ logProcess logExecLogger logpHandle
+                      forkIO $ runAngelM opts $ logProcess (\v m -> loggerSink v m) logpHandle
 
-                    return (UseHandle (fromJust inPipe),
-                            UseHandle (fromJust inPipe),
-                            Just logpHandle)
+                      return (UseHandle (fromJust inPipe),
+                              UseHandle (fromJust inPipe),
+                              Just logpHandle)
                     where
-                        logExecLogger = programLogger $ "logger for " ++ id'
+                        loggerSink = programLogger $ "logger for " ++ id'
 
-logProcess :: (String -> IO ()) -> ProcessHandle -> IO ()
+logProcess :: (Verbosity -> String -> AngelM ()) -> ProcessHandle -> AngelM ()
 logProcess logSink pHandle = do
-  logSink "RUNNING"
-  waitForProcess pHandle
-  logSink "ENDED"
+  logSink V2 "RUNNING"
+  liftIO $ waitForProcess pHandle
+  logSink V2 "ENDED"
 
 --TODO: paralellize
-killProcesses :: [KillDirective] -> IO ()
+killProcesses :: [KillDirective] -> AngelM ()
 killProcesses = mapM_ killProcess
 
-killProcess :: KillDirective -> IO ()
+killProcess :: KillDirective -> AngelM ()
 killProcess (SoftKill n pid lpid) = do
-  logger' $ "Soft killing " ++ n
-  softKillProcessHandle pid
+  logger' V2 $ "Soft killing " ++ n
+  liftIO $ softKillProcessHandle pid
   case lpid of
     Just lph -> killProcess (SoftKill n lph Nothing)
     Nothing -> return ()
   where logger' = logger "process-killer"
 killProcess (HardKill n pid lpid grace) = do
-  logger' $ "Attempting soft kill " ++ n ++ " before hard killing"
-  softKillProcessHandle pid
-  logger' $ "Waiting " ++ show grace ++ " seconds for " ++ n ++ " to die"
-  sleepSecs grace
+  logger' V2 $ "Attempting soft kill " ++ n ++ " before hard killing"
+  liftIO $ softKillProcessHandle pid
+  logger' V2 $ "Waiting " ++ show grace ++ " seconds for " ++ n ++ " to die"
+  liftIO $ sleepSecs grace
 
   -- Note that this means future calls to get exits status will fail
-  dead <- isProcessHandleDead pid
+  dead <- liftIO $ isProcessHandleDead pid
 
-  unless dead $ logger' ("Hard killing " ++ n) >> hardKillProcessHandle pid
+  unless dead $ do
+    logger' V2 ("Hard killing " ++ n)
+    liftIO $ hardKillProcessHandle pid
   case lpid of
     Just lph -> killProcess (HardKill n lph Nothing grace)
     Nothing -> return ()
@@ -232,17 +255,22 @@ cleanPidfiles progs = mapM_ clearPIDFile pidfiles
   where pidfiles = mapMaybe pidFile progs
 
 -- |fire up new supervisors for new program ids
-startProcesses :: TVar GroupConfig -> [String] -> IO ()
+startProcesses :: TVar GroupConfig -> [String] -> AngelM ()
 startProcesses sharedGroupConfig = mapM_ spawnWatcher
     where
-        spawnWatcher s = forkIO $ wrapProcess sharedGroupConfig s
+        spawnWatcher s = do
+          opts <- ask
+          liftIO $ forkIO $ runAngelM opts $ wrapProcess sharedGroupConfig s
 
-wrapProcess :: TVar GroupConfig -> String -> IO ()
+wrapProcess :: TVar GroupConfig -> String -> AngelM ()
 wrapProcess sharedGroupConfig id' = do
-    run <- createRunningEntry
-    when run $ finally (supervise sharedGroupConfig id') deleteRunning
+    opts <- ask
+    liftIO $ do
+      run <- createRunningEntry
+      when run $
+        (runAngelM opts $ supervise sharedGroupConfig id') `finally` deleteRunning
   where
-    deleteRunning = atomically $ do
+    deleteRunning = liftIO $ atomically $ do
         wcfg <- readTVar sharedGroupConfig
         writeTVar sharedGroupConfig wcfg{
             running=M.delete id' (running wcfg)
@@ -269,17 +297,17 @@ wrapProcess sharedGroupConfig id' = do
 
 -- |diff the requested config against the actual run state, and
 -- |do any start/kill action necessary
-syncSupervisors :: TVar GroupConfig -> IO ()
+syncSupervisors :: TVar GroupConfig -> AngelM ()
 syncSupervisors sharedGroupConfig = do
    let logger' = logger "process-monitor"
-   cfg <- atomically $ readTVar sharedGroupConfig
+   cfg <- liftIO $ atomically $ readTVar sharedGroupConfig
    let (killProgs, killHandles) = mustKill cfg
    let starts = mustStart cfg
-   when (nnull killHandles || nnull starts) $ logger' (
+   when (nnull killHandles || nnull starts) $ logger' V2 (
          "Must kill=" ++ show (length killHandles)
                 ++ ", must start=" ++ show (length starts))
    killProcesses killHandles
-   cleanPidfiles killProgs
+   liftIO $ cleanPidfiles killProgs
    startProcesses sharedGroupConfig starts
 
 --TODO: make private
@@ -307,5 +335,7 @@ toKillDirective D.Program { name = n } ph lph           = SoftKill n ph lph
 -- |periodically run the supervisor sync independent of config reload,
 -- |just in case state gets funky b/c of theoretically possible timing
 -- |issues on reload
-pollStale :: TVar GroupConfig -> IO ()
-pollStale sharedGroupConfig = forever $ sleepSecs 10 >> syncSupervisors sharedGroupConfig
+pollStale :: TVar GroupConfig -> AngelM ()
+pollStale sharedGroupConfig = forever $ do
+  liftIO $ sleepSecs 10
+  syncSupervisors sharedGroupConfig

@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Angel.Data ( GroupConfig(..)
                   , SpecKey
                   , RunKey
@@ -7,14 +8,21 @@ module Angel.Data ( GroupConfig(..)
                   , RunState(..)
                   , Spec
                   , KillDirective(..)
+                  , Verbosity(..)
+                  , Options(..)
+                  , AngelM(..)
                   , defaultProgram
                   , defaultDelay
                   , defaultStdout
                   , defaultStderr
+                  , runAngelM
                   ) where
 
 import qualified Data.Map as M
 import System.Process ( ProcessHandle )
+import Control.Applicative
+import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Control.Concurrent.STM.TChan (TChan)
 import System.IO (Handle)
 
@@ -39,7 +47,7 @@ data RunState = RunState {
 type ProgramId = String
 type FileRequest = (String, TChan (Maybe Handle))
 
--- |the representation of a program is these 6 values, 
+-- |the representation of a program is these 6 values,
 -- |read from the config file
 data Program = Program {
   name       :: String,
@@ -65,6 +73,30 @@ data KillDirective = SoftKill String ProcessHandle (Maybe ProcessHandle) |
 
 -- |Lower-level atoms in the configuration process
 type Spec = [Program]
+
+
+data Verbosity = V0
+               -- ^ Failures only
+               | V1
+               -- ^ Failures + program starts/stops
+               | V2
+               -- ^ Max verbosity. Default. Logs all of the above as well as state changes and other debugging info.
+               deriving (Show, Eq, Ord)
+
+
+data Options = Options {
+      configFile :: FilePath
+    , verbosity  :: Verbosity
+    }
+
+
+newtype AngelM a = AngelM {
+      unAngelM :: ReaderT Options IO a
+    } deriving (Functor, Applicative, Monad, MonadReader Options, MonadIO)
+
+
+runAngelM :: Options -> AngelM a -> IO a
+runAngelM o (AngelM f) = runReaderT f o
 
 -- |a template for an empty program; the variable set to ""
 -- |are required, and must be overridden in the config file
