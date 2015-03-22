@@ -12,6 +12,7 @@ import Control.Exception ( try
 import qualified Data.Map as M
 import Control.Monad ( when
                      , (>=>) )
+import Control.Monad.IO.Class
 import Control.Concurrent.STM ( STM
                               , TVar
                               , writeTVar
@@ -43,7 +44,9 @@ import Angel.Data ( Program( user
                            , termGrace
                            , env )
                   , SpecKey
+                  , AngelM
                   , GroupConfig
+                  , Verbosity(..)
                   , spec
                   , defaultProgram )
 import Angel.Log ( logger )
@@ -194,19 +197,19 @@ updateSpecConfig sharedGroupConfig newSpec = do
 
 -- |read the config file, update shared state with current spec,
 -- |re-sync running supervisors, wait for the HUP TVar, then repeat!
-monitorConfig :: String -> TVar GroupConfig -> TVar (Maybe Int) -> IO ()
+monitorConfig :: String -> TVar GroupConfig -> TVar (Maybe Int) -> AngelM ()
 monitorConfig configPath sharedGroupConfig wakeSig = do
     let logger' = logger "config-monitor"
-    mspec <- processConfig configPath
+    mspec <- liftIO $ processConfig configPath
     case mspec of
         Left e     -> do
-            logger' $ " <<<< Config Error >>>>\n" ++ e
-            logger' " <<<< Config Error: Skipping reload >>>>"
+            logger' V1 $ " <<<< Config Error >>>>\n" ++ e
+            logger' V2 " <<<< Config Error: Skipping reload >>>>"
         Right newSpec -> do
-            atomically $ updateSpecConfig sharedGroupConfig newSpec
+            liftIO $ atomically $ updateSpecConfig sharedGroupConfig newSpec
             syncSupervisors sharedGroupConfig
-    waitForWake wakeSig
-    logger' "HUP caught, reloading config"
+    liftIO $ waitForWake wakeSig
+    logger' V2 "HUP caught, reloading config"
 
 expandPaths :: SpecKey -> IO SpecKey
 expandPaths = T.mapM expandProgramPaths

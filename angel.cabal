@@ -44,6 +44,7 @@ Executable angel
   Build-depends: old-locale
   Build-depends: text>=0.11
   Build-depends: transformers
+  Build-depends: optparse-applicative
 
 
   Other-modules: Angel.Files,
@@ -76,5 +77,6 @@ test-suite spec
   Build-depends: time
   Build-depends: old-locale
   Build-depends: text>=0.11
+  Build-depends: transformers
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
   Ghc-Options: -threaded -rtsopts -with-rtsopts=-N

@@ -4,9 +4,10 @@ module Angel.JobSpec (spec) where
 import Angel.Job (killProcess)
 import Angel.Process ( getProcessHandleStatus
                      , hardKillProcessHandle )
-import Angel.Data (KillDirective(..))
+import Angel.Data hiding (Spec, spec)
 import Angel.Util (sleepSecs)
 
+import Control.Monad.IO.Class
 import System.Exit (ExitCode(..))
 import System.Posix.Directory (getWorkingDirectory)
 import System.Posix.Signals (sigKILL)
@@ -21,38 +22,43 @@ spec :: Spec
 spec =
   describe "killProcess" $ do
     describe "using SoftKill" $ do
-      it "cleanly kills well-behaved processes" $ do
-        ph <- launchCompliantJob
+      it "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
+        ph <- liftIO launchCompliantJob
         killProcess $ SoftKill "thing" ph Nothing
-        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Exited ExitSuccess)
+        liftIO $
+          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Exited ExitSuccess)
 
-      it "does not forcefully kill stubborn processes" $ do
-        ph <- launchStubbornJob
+      it "does not forcefully kill stubborn processes" $ runAngelM dummyOptions $ do
+        ph <- liftIO launchStubbornJob
         killProcess $ SoftKill "thing" ph Nothing
         -- stubborn job gets marked as [defunct] here. no idea why. it should be able to survive a SIGTERM
-        patientlyGetProcessExitCode ph `shouldReturn` Nothing
-        hardKillProcessHandle ph -- cleanup
+        liftIO $ do
+          patientlyGetProcessExitCode ph `shouldReturn` Nothing
+          hardKillProcessHandle ph -- cleanup
 
     describe "using HardKill" $ do
-      it "cleanly kills well-behaved processes" $ do
-        ph <- launchCompliantJob
+      it "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
+        ph <- liftIO launchCompliantJob
         killProcess $ HardKill "thing" ph Nothing 1
         -- Can't geth the exiit status because the life check in Job "uses up" the waitpid
-        patientlyGetProcessExitCode ph `shouldReturn` Nothing
-      it "forcefully kills stubborn processes" $ do
-        ph <- launchStubbornJob
+        liftIO $
+          patientlyGetProcessExitCode ph `shouldReturn` Nothing
+      it "forcefully kills stubborn processes" $ runAngelM dummyOptions $ do
+        ph <- liftIO launchStubbornJob
         killProcess $ HardKill "thing" ph Nothing 1
+        liftIO $
 #if MIN_VERSION_unix(2,7,0)
-        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False)
+          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False)
 #else
-        patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL)
+          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL)
 #endif
     describe "with a logger" $
-      it "cleanly kills well-behaved loggers" $ do
-        ph <- launchCompliantJob
-        lph <- launchCompliantJob
+      it "cleanly kills well-behaved loggers" $ runAngelM dummyOptions $ do
+        ph <- liftIO launchCompliantJob
+        lph <- liftIO launchCompliantJob
         killProcess $ SoftKill "thing" ph (Just lph)
-        patientlyGetProcessExitCode lph `shouldReturn` (Just $ Exited ExitSuccess)
+        liftIO $
+          patientlyGetProcessExitCode lph `shouldReturn` (Just $ Exited ExitSuccess)
 
 launchCompliantJob :: IO ProcessHandle
 launchCompliantJob = launchJob "CompliantJob"
@@ -69,3 +75,9 @@ launchJob n = do wd <- getWorkingDirectory
 
 patientlyGetProcessExitCode :: ProcessHandle -> IO (Maybe ProcessStatus)
 patientlyGetProcessExitCode ph = sleepSecs 1 >> getProcessHandleStatus ph
+
+dummyOptions :: Options
+dummyOptions = Options {
+      configFile = ""
+    , verbosity  = V0
+    }

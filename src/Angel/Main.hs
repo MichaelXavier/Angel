@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 import Control.Concurrent (forkIO)
@@ -12,7 +13,8 @@ import Control.Concurrent.STM (TVar,
                                readTVar,
                                newTVarIO)
 import Control.Monad (forever)
-import System.Console.GetOpt
+import Control.Monad.Reader
+import Options.Applicative
 import System.Environment (getArgs)
 import System.Exit (exitFailure,
                     exitSuccess)
@@ -32,7 +34,11 @@ import qualified Data.Map as M
 import Angel.Log (logger)
 import Angel.Config (monitorConfig)
 import Angel.Data (GroupConfig(GroupConfig),
-                   spec)
+                   Options(..),
+                   spec,
+                   Verbosity(..),
+                   AngelM,
+                   runAngelM)
 import Angel.Job (pollStale,
                   syncSupervisors)
 
@@ -45,76 +51,78 @@ handleExit :: MVar Bool -> IO ()
 handleExit mv = putMVar mv True
 
 main :: IO ()
-main = do
-  (os, files, errs) <- getOpt RequireOrder [verbosityDesc] =<< getArgs
-  case errs of
-    [] -> case files of
-      [] -> 
-  runWithOpts =<< =<< getArgs
+main = runWithOpts =<< execParser opts
 
+opts :: ParserInfo Options
 opts = info (helper <*> opts')
        (fullDesc <> header "angel - Process management and supervision daemon")
   where
     opts' = Options
             <$> strArgument (metavar "CONFIG_FILE")
-            <*> optional (option auto (short 'v' <> value V2 <> showDefault))
+            <*> option readVOpt (short 'v' <>
+                                 value V2 <>
+                                 showDefault <>
+                                 metavar "VERBOSITY" <>
+                                 help "Verbosity from 0-2")
 
-optDescs :: [OptDesc ]
-optDescs = [verbo]
-
-
--- handleArgs :: [String] -> IO ()
--- handleArgs ["--help"]   = printHelp
--- handleArgs ["-h"]       = printHelp
--- handleArgs []           = printHelp
--- handleArgs [configPath] = runWithConfigPath configPath
--- handleArgs _            = errorExit "expected a single config file. Run with --help for usage."
-
--- printHelp :: IO ()
--- printHelp = putStrLn "Usage: angel [--help] CONFIG_FILE" >> exitSuccess
+readVOpt :: ReadM Verbosity
+readVOpt = eitherReader $ \s ->
+    case s of
+      "0" -> return V0
+      "1" -> return V1
+      "2" -> return V2
+      _   -> Left "Expecting 0-2"
 
 runWithOpts :: Options -> IO ()
-runWithOpts Options {..} = undefined
+runWithOpts os = runAngelM os runWithConfigPath
 
 
-runWithConfigPath :: FilePath -> IO ()
-runWithConfigPath configPath = do
-    hSetBuffering stdout LineBuffering
-    hSetBuffering stderr LineBuffering
+runWithConfigPath :: AngelM ()
+runWithConfigPath = do
+    configPath <- asks configFile
+    liftIO $ hSetBuffering stdout LineBuffering
+    liftIO $ hSetBuffering stderr LineBuffering
     let logger' = logger "main"
-    logger' "Angel started"
+    logger' V2 "Angel started"
 
-    logger' $ "Using config file: " ++ configPath
+    logger' V2 $ "Using config file: " ++ configPath
 
     -- Create the TVar that represents the "global state" of running applications
     -- and applications that _should_ be running
-    fileReqChan <- atomically newTChan
-    sharedGroupConfig <- newTVarIO $ GroupConfig M.empty M.empty fileReqChan
+    fileReqChan <- liftIO $ atomically newTChan
+    sharedGroupConfig <- liftIO $ newTVarIO $ GroupConfig M.empty M.empty fileReqChan
 
     -- The wake signal, set by the HUP handler to wake the monitor loop
-    wakeSig <- newTVarIO Nothing
-    installHandler sigHUP (Catch $ handleHup wakeSig) Nothing
+    wakeSig <- liftIO $ newTVarIO Nothing
+    liftIO $ installHandler sigHUP (Catch $ handleHup wakeSig) Nothing
 
     -- Handle dying
-    bye <- newEmptyMVar
-    installHandler sigTERM (Catch $ handleExit bye) Nothing
-    installHandler sigINT (Catch $ handleExit bye) Nothing
+    bye <- liftIO newEmptyMVar
+    liftIO $ installHandler sigTERM (Catch $ handleExit bye) Nothing
+    liftIO $ installHandler sigINT (Catch $ handleExit bye) Nothing
 
     -- Fork off an ongoing state monitor to watch for inconsistent state
-    forkIO $ pollStale sharedGroupConfig
+    forkIO' $ pollStale sharedGroupConfig
 
     -- Finally, run the config load/monitor thread
-    forkIO $ forever $ monitorConfig configPath sharedGroupConfig wakeSig
+    forkIO' $ forever $ monitorConfig configPath sharedGroupConfig wakeSig
 
-    _ <- takeMVar bye
-    logger' "INT | TERM received; initiating shutdown..."
-    logger' "  1. Clearing config"
-    atomically $ do
+    liftIO $ takeMVar bye
+
+    logger' V2 "INT | TERM received; initiating shutdown..."
+    logger' V2 "  1. Clearing config"
+    liftIO $ atomically $ do
         cfg <- readTVar sharedGroupConfig
         writeTVar sharedGroupConfig cfg {spec = M.empty}
-    logger' "  2. Forcing sync to kill running processes"
+    logger' V2 "  2. Forcing sync to kill running processes"
     syncSupervisors sharedGroupConfig
-    logger' "That's all folks!"
+    logger' V2 "That's all folks!"
 
 errorExit :: String -> IO ()
 errorExit msg = hPutStrLn stderr msg >> exitFailure
+
+
+forkIO' :: AngelM () -> AngelM ()
+forkIO' f = do
+    r <- ask
+    void $ liftIO $ forkIO $ runAngelM r f
