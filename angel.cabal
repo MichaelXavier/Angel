@@ -14,6 +14,7 @@ Description:    @angel@ is a daemon that runs and monitors other processes.  It
 
 Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Homepage:            http://github.com/MichaelXavier/Angel
+Bug-Reports:         http://github.com/MichaelXavier/Angel/issues
 
 Stability:           Stable
 Category:            System
