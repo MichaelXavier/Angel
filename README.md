@@ -291,6 +291,9 @@ but still let you keep it in the config file.
 
 CHANGELOG
 ---------
+### 0.5.2
+* Add -v flag to executable
+
 ### 0.5.0
 * Drop depdendency on MissingH
 
