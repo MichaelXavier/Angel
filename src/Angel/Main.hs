@@ -61,9 +61,15 @@ opts = info (helper <*> opts')
             <$> strArgument (metavar "CONFIG_FILE")
             <*> option readVOpt (short 'v' <>
                                  value V2 <>
-                                 showDefault <>
+                                 showDefaultWith vOptAsNumber <>
                                  metavar "VERBOSITY" <>
                                  help "Verbosity from 0-2")
+
+vOptAsNumber :: Verbosity -> String
+vOptAsNumber V2 = "2"
+vOptAsNumber V1 = "1"
+vOptAsNumber V0 = "0"
+
 
 readVOpt :: ReadM Verbosity
 readVOpt = eitherReader $ \s ->

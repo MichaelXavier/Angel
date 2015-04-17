@@ -91,8 +91,18 @@ Notes:
 Configuration and Usage Example
 -------------------------------
 
-The `angel` executable takes exactly one argument: a path to
-an angel configuration file.
+The `angel` executable takes a path to an angel configuration
+file.
+
+    angel --help
+    angel - Process management and supervision daemon
+
+    Usage: angel CONFIG_FILE [-v VERBOSITY]
+
+    Available options:
+      -h,--help                Show this help text
+      -v VERBOSITY             Verbosity from 0-2 (default: 2)
+
 
 `angel`'s configuration system is based on Bryan O'Sullivan's `configurator`
 package.  A full description of the format can be found here:
