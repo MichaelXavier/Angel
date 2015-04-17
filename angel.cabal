@@ -20,6 +20,7 @@ Category:            System
 Build-type:          Simple
 
 Extra-source-files:  README.md
+                     changelog.md
 
 Cabal-version:       >=1.8
 
