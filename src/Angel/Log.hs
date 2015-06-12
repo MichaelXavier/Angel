@@ -5,10 +5,10 @@ module Angel.Log ( cleanCalendar
 import Control.Monad.Reader
 import Data.Time.LocalTime (ZonedTime,
                             getZonedTime)
-import Data.Time.Format (formatTime)
+import Data.Time.Format ( formatTime
+                        , defaultTimeLocale)
 
 import Text.Printf (printf)
-import System.Locale (defaultTimeLocale)
 import Angel.Data
 
 -- |provide a clean, ISO-ish format for timestamps in logs
