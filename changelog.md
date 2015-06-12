@@ -1,3 +1,6 @@
+0.6.0
+* Upgrade to time 1.5
+
 0.5.2
 * Add -v flag to executable
 
