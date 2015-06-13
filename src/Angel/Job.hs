@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Angel.Job ( syncSupervisors
                  , killProcess -- for testing
                  , pollStale ) where
