@@ -1,3 +1,6 @@
+0.6.1
+* Fix build for GHC 7.10 by adding FlexibleContexts
+
 0.6.0
 * Upgrade to time 1.5
 
