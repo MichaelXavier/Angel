@@ -77,7 +77,7 @@ daemons, it has been written to be very reliable:
 Building
 --------
 
- 1. Install the haskell-platform (or somehow, ghc 7.4 +
+ 1. Install the haskell-platform (or somehow, ghc 7.6 +
     cabal-install)
  2. Run `cabal install` in the project root (this directory)
  3. Either add the ~/.cabal/bin file to your $PATH or copy
@@ -85,7 +85,7 @@ Building
 
 Notes:
 
- * Angel is compatible with GHC versions 7.4 and newer.
+ * Angel is recommended to be built on GHC 7.6 and newer.
 
 Configuration and Usage Example
 -------------------------------
