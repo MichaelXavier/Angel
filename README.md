@@ -13,10 +13,10 @@ Motivation
 
 The author is a long-time user of `daemontools` due to its reliability
 and simplicity; however, `daemontools` is quirky and follows many
-unusual conventions.  
+unusual conventions.
 
-`angel` is an attempt to recreate `daemontools`'s capabilities (though 
-not the various bundled utility programs which are still quite useful) 
+`angel` is an attempt to recreate `daemontools`'s capabilities (though
+not the various bundled utility programs which are still quite useful)
 in a more intuitive and modern unix style.
 
 
@@ -24,7 +24,7 @@ Functionality
 -------------
 
 `angel` is driven by a configuration file that contains a list of
-program specifications to run.  `angel` assumes every program listed in 
+program specifications to run.  `angel` assumes every program listed in
 the specification file should be running at all times.
 
 `angel` starts each program, and optionally sets the program's stdout
@@ -35,7 +35,7 @@ this point, the program is said to be "supervised".
 If the program dies for any reason, `angel` waits a specified number
 of seconds (default, 5), then restarts the program.
 
-The `angel` process itself will respond to a HUP signal by 
+The `angel` process itself will respond to a HUP signal by
 re-processing its configuration file, and synchronizing the run
 states with the new configuration.  Specifically:
 
@@ -47,7 +47,7 @@ states with the new configuration.  Specifically:
    normal supervision, will be restarted with the updated spec
  * If a program has been removed from the configuration file,
    the corresponding child process will be sent a TERM signal;
-   when it dies, supervision of the process will end, and 
+   when it dies, supervision of the process will end, and
    therefore, it will not be restarted
 
 Safety and Reliability
@@ -77,7 +77,7 @@ daemons, it has been written to be very reliable:
 Building
 --------
 
- 1. Install the haskell-platform (or somehow, ghc 7.0 + 
+ 1. Install the haskell-platform (or somehow, ghc 7.4 +
     cabal-install)
  2. Run `cabal install` in the project root (this directory)
  3. Either add the ~/.cabal/bin file to your $PATH or copy
@@ -85,8 +85,7 @@ Building
 
 Notes:
 
- * I have not tried building `angel` against ghc 6.10 or earlier;
-   6.12, 7.0, 7.2, 7.4, and 7.6 are known to work
+ * Angel is compatible with GHC versions 7.4 and newer.
 
 Configuration and Usage Example
 -------------------------------
@@ -144,7 +143,7 @@ Then, a series of corresponding configuration commands follow:
  * `exec` is the exact command line to run (required)
  * `user` is the user the program will run as (optional, defaults to the
    user angel is launched as)
- * `stdout` is a path to a file where the program's standard output 
+ * `stdout` is a path to a file where the program's standard output
     should be appended (optional, defaults to /dev/null)
  * `stderr` is a path to a file where the program's standard error
     should be appended (optional, defaults to /dev/null)
@@ -184,7 +183,7 @@ Then, a series of corresponding configuration commands follow:
 Assuming the above configuration was in a file called "example.conf",
 here's what a shell session might look like:
 
-    jamie@choo:~/random/angel$ angel example.conf 
+    jamie@choo:~/random/angel$ angel example.conf
     [2010/08/24 15:21:22] {main} Angel started
     [2010/08/24 15:21:22] {main} Using config file: example.conf
     [2010/08/24 15:21:22] {process-monitor} Must kill=0, must start=2
@@ -274,7 +273,7 @@ FAQ
 
 Yes, angel `dup()`s file descriptors and makes effort to safely
 allow concurrent writes by child programs; you should DEFINITELY
-make sure your child program is doing stdout/stderr writes in 
+make sure your child program is doing stdout/stderr writes in
 line-buffered mode so this doesn't result in a complete interleaved
 mess in the log file.
 
