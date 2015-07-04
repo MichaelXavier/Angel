@@ -18,7 +18,7 @@ Bug-Reports:         http://github.com/MichaelXavier/Angel/issues
 
 Stability:           Stable
 Category:            System
-Build-type:          Simple
+Build-type:          Custom
 
 Extra-source-files:  README.md
                      changelog.md

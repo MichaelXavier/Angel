@@ -263,7 +263,7 @@ If you prefer to stick with haskell tools, use cabal to build the package.
 You can run the test suite with
 
 ```
-make test
+cabal test
 ```
 
 FAQ
