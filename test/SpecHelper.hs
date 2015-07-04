@@ -1,4 +1,5 @@
 module SpecHelper (module X) where
 
-import Test.Hspec as X
-import Test.Hspec.QuickCheck as X
+import Test.Tasty as X
+import Test.Tasty.HUnit as X
+import Test.Tasty.QuickCheck as X

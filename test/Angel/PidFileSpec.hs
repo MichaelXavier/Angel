@@ -14,22 +14,26 @@ import System.Posix.Files (fileExist)
 
 import SpecHelper
 
-spec :: Spec
-spec =
-  describe "startWithPidFile" $ do
-    it "creates the pidfile and cleans up" $ do
-      startWithPidFile procSpec fileName jogOn $ \_pHandle -> do
-        fileShouldExist fileName
-        pid <- readFile fileName
-        null pid `shouldBe` False
-        all isNumber pid `shouldBe` True
-      fileShouldNotExist fileName
-    it "calls the error callback when pidfile can't be created and re-raises" $ do
-      called <- newIORef False
-      let onPidError = const $ writeIORef called True
-      (res :: Either SomeException ()) <- try $ startWithPidFile procSpec badPidFile jogOn onPidError
-      readIORef called `shouldReturn` True
-      isLeft res `shouldBe` True
+spec :: TestTree
+spec = testGroup "Angel.PidFile"
+  [
+    testGroup "startWithPidFile"
+    [
+      testCase "creates the pidfile and cleans up" $ do
+        startWithPidFile procSpec fileName jogOn $ \_pHandle -> do
+          fileShouldExist fileName
+          pid <- readFile fileName
+          null pid @?= False
+          all isNumber pid @?= True
+        fileShouldNotExist fileName
+    , testCase "calls the error callback when pidfile can't be created and re-raises" $ do
+        called <- newIORef False
+        let onPidError = const $ writeIORef called True
+        (res :: Either SomeException ()) <- try $ startWithPidFile procSpec badPidFile jogOn onPidError
+        readIORef called `shouldReturn` True
+        isLeft res @?= True
+    ]
+  ]
   where
     fileName = "temp.pid"
     badPidFile = "/bogus/path/to/pidfile"

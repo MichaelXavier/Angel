@@ -74,8 +74,10 @@ test-suite spec
                  Angel.PidFileSpec
                  Angel.UtilSpec
                  SpecHelper
-  Build-Depends:  base
-  Build-Depends:  hspec
+  Build-Depends: base
+  Build-Depends: tasty
+  Build-Depends: tasty-hunit
+  Build-Depends: tasty-quickcheck
   Build-depends: base >= 4.0 && < 5
   Build-depends: process >= 1.0 && < 2.0
   Build-depends: mtl

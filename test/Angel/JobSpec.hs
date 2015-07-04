@@ -18,47 +18,57 @@ import System.Process ( createProcess
 
 import SpecHelper
 
-spec :: Spec
-spec =
-  describe "killProcess" $ do
-    describe "using SoftKill" $ do
-      it "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
-        ph <- liftIO launchCompliantJob
-        killProcess $ SoftKill "thing" ph Nothing
-        liftIO $
-          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Exited ExitSuccess)
+spec :: TestTree
+spec = testGroup "Angel.Jon"
+  [
+    testGroup "killProcess"
+    [
+      testGroup "using SoftKill"
+      [
+        testCase "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
+          ph <- liftIO launchCompliantJob
+          killProcess $ SoftKill "thing" ph Nothing
+          liftIO $
+            patientlyGetProcessExitCode ph `shouldReturn` (Just $ Exited ExitSuccess)
 
-      it "does not forcefully kill stubborn processes" $ runAngelM dummyOptions $ do
-        ph <- liftIO launchStubbornJob
-        killProcess $ SoftKill "thing" ph Nothing
-        -- stubborn job gets marked as [defunct] here. no idea why. it should be able to survive a SIGTERM
-        liftIO $ do
-          patientlyGetProcessExitCode ph `shouldReturn` Nothing
-          hardKillProcessHandle ph -- cleanup
-
-    describe "using HardKill" $ do
-      it "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
-        ph <- liftIO launchCompliantJob
-        killProcess $ HardKill "thing" ph Nothing 1
-        -- Can't geth the exiit status because the life check in Job "uses up" the waitpid
-        liftIO $
-          patientlyGetProcessExitCode ph `shouldReturn` Nothing
-      it "forcefully kills stubborn processes" $ runAngelM dummyOptions $ do
-        ph <- liftIO launchStubbornJob
-        killProcess $ HardKill "thing" ph Nothing 1
-        liftIO $
+        testCase "does not forcefully kill stubborn processes" $ runAngelM dummyOptions $ do
+          ph <- liftIO launchStubbornJob
+          killProcess $ SoftKill "thing" ph Nothing
+          -- stubborn job gets marked as [defunct] here. no idea why. it should be able to survive a SIGTERM
+          liftIO $ do
+            patientlyGetProcessExitCode ph `shouldReturn` Nothing
+            hardKillProcessHandle ph -- cleanup
+      ],
+      testGroup "using HardKill"
+      [
+        testCase "cleanly kills well-behaved processes" $ runAngelM dummyOptions $ do
+          ph <- liftIO launchCompliantJob
+          killProcess $ HardKill "thing" ph Nothing 1
+          -- Can't geth the exiit status because the life check in Job "uses up" the waitpid
+          liftIO $
+            patientlyGetProcessExitCode ph `shouldReturn` Nothing
+      , testCase "forcefully kills stubborn processes" $ runAngelM dummyOptions $ do
+          ph <- liftIO launchStubbornJob
+          killProcess $ HardKill "thing" ph Nothing 1
+          liftIO $
 #if MIN_VERSION_unix(2,7,0)
-          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False)
+            patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL False)
 #else
-          patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL)
+            patientlyGetProcessExitCode ph `shouldReturn` (Just $ Terminated sigKILL)
 #endif
-    describe "with a logger" $
-      it "cleanly kills well-behaved loggers" $ runAngelM dummyOptions $ do
-        ph <- liftIO launchCompliantJob
-        lph <- liftIO launchCompliantJob
-        killProcess $ SoftKill "thing" ph (Just lph)
-        liftIO $
-          patientlyGetProcessExitCode lph `shouldReturn` (Just $ Exited ExitSuccess)
+      ],
+      testGroup "with a logger"
+      [
+        testCase "cleanly kills well-behaved loggers" $ runAngelM dummyOptions $ do
+          ph <- liftIO launchCompliantJob
+          lph <- liftIO launchCompliantJob
+          killProcess $ SoftKill "thing" ph (Just lph)
+          liftIO $
+            patientlyGetProcessExitCode lph `shouldReturn` (Just $ Exited ExitSuccess)
+      ]
+    ]
+  ]
+
 
 launchCompliantJob :: IO ProcessHandle
 launchCompliantJob = launchJob "CompliantJob"
