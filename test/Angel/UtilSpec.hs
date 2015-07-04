@@ -17,22 +17,22 @@ spec = testGroup "Angel.Util"
         UserEntry { homeDirectory = home } <- getUserEntry
         path <- expandPath "~/foo"
         path @?= home ++ "/foo"
-      testCase "generates the correct path for tilde with a specific user" $ do
+    , testCase "generates the correct path for tilde with a specific user" $ do
         UserEntry { homeDirectory = home,
                     userName      = user } <- getUserEntry
         path <- expandPath $ "~" ++ user ++ "/foo"
         path @?= home ++ "/foo"
-      testCase "leaves paths without tildes alone" $ do
+    , testCase "leaves paths without tildes alone" $ do
         path <- expandPath "/foo"
         path @?= "/foo"
-    ],
-    testGroup "split"
+    ]
+  , testGroup "split"
     [
       testProperty "produces no null values" $ \(a :: Char) (xs :: [Char]) ->
         none null $ split a xs
-      testProperty "produces no instances of the split element" $ \(a :: Char) (xs :: [Char]) ->
+    , testProperty "produces no instances of the split element" $ \(a :: Char) (xs :: [Char]) ->
         none (elem a) $ split a xs
-      testCase "splits" $
+    , testCase "splits" $
         split ' ' "  foo  bar     baz  " @?= ["foo", "bar", "baz"]
     ]
   ]

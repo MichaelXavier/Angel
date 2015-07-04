@@ -31,7 +31,7 @@ spec = testGroup "Angel.Jon"
           liftIO $
             patientlyGetProcessExitCode ph `shouldReturn` (Just $ Exited ExitSuccess)
 
-        testCase "does not forcefully kill stubborn processes" $ runAngelM dummyOptions $ do
+      , testCase "does not forcefully kill stubborn processes" $ runAngelM dummyOptions $ do
           ph <- liftIO launchStubbornJob
           killProcess $ SoftKill "thing" ph Nothing
           -- stubborn job gets marked as [defunct] here. no idea why. it should be able to survive a SIGTERM

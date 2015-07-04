@@ -7,6 +7,8 @@ import qualified Angel.LogSpec
 import qualified Angel.PidFileSpec
 import qualified Angel.UtilSpec
 -------------------------------------------------------------------------------
+import SpecHelper
+-------------------------------------------------------------------------------
 
 
 
