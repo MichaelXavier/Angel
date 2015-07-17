@@ -1,3 +1,6 @@
+0.6.2
+* Switch to cabal-only build strategy
+
 0.6.1
 * Fix build for GHC 7.10 by adding FlexibleContexts
 
