@@ -25,8 +25,6 @@ import System.Process ( createProcess
                       , StdStream(UseHandle, CreatePipe) )
 import qualified System.Posix.Process as P ( forkProcess
                             , getProcessStatus )
-import qualified System.Posix.User as U (getUserEntryForName,
-                          UserEntry(userID) )
 
 import Control.Concurrent ( forkIO )
 import Control.Concurrent.STM ( TVar
