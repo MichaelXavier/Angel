@@ -25,8 +25,7 @@ import System.Process ( createProcess
                       , StdStream(UseHandle, CreatePipe) )
 import qualified System.Posix.Process as P ( forkProcess
                             , getProcessStatus )
-import qualified System.Posix.User as U (setUserID,
-                          getUserEntryForName,
+import qualified System.Posix.User as U (getUserEntryForName,
                           UserEntry(userID) )
 
 import Control.Concurrent ( forkIO )
@@ -74,11 +73,6 @@ import Angel.PidFile ( startMaybeWithPidFile
 
 ifEmpty :: String -> a -> a -> a
 ifEmpty s a b = if s == "" then a else b
-
-switchUser :: String -> IO ()
-switchUser name = do
-    userEntry <- U.getUserEntryForName name
-    U.setUserID $ U.userID userEntry
 
 -- |launch the program specified by `id'`, opening (and closing) the
 -- |appropriate fds for logging.  When the process dies, either b/c it was
@@ -139,6 +133,12 @@ supervise sharedGroupConfig id' = do
               running=M.insertWith' const id' rstate (running wcfg)
             }
 
+sudoProc :: (Maybe String) -> FilePath -> [String] -> CreateProcess
+sudoProc (Just user) cmd args = proc "sudo" ("-u":user:cmd:args)
+sudoProc Nothing cmd args = proc cmd args
+
+--newCmd, newArgs
+
 superviseSpawner
   :: Program
   -> GroupConfig
@@ -153,27 +153,23 @@ superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction
     opts <- ask
     let io = runAngelM opts
     liftIO $ do
-      angelPid <- P.forkProcess $ do
-        maybe (return ()) switchUser (D.user the_spec)
-        -- start the logger process or if non is configured
-        -- use the files specified in the configuration
-        (attachOut, attachErr, lHandle) <- io $ makeFiles the_spec cfg
 
-        let
-            procSpec = (proc cmd args) {
-              std_out = attachOut,
-              std_err = attachErr,
-              cwd = workingDir the_spec,
-              env = Just $ D.env the_spec
-            }
+    -- start the logger process or if non is configured
+    -- use the files specified in the configuration
+    (attachOut, attachErr, lHandle) <- io $ makeFiles the_spec cfg
 
-        startMaybeWithPidFile procSpec
-                              (pidFile the_spec)
-                              (io . onValidHandleAction the_spec lHandle)
-                              (io . onPidErrorAction the_spec lHandle)
+    let
+        procSpec = (sudoProc (D.user the_spec) cmd args) {
+            std_out = attachOut,
+            std_err = attachErr,
+            cwd = workingDir the_spec,
+            env = Just $ D.env the_spec
+        }
 
-      P.getProcessStatus True True angelPid
-      return ()
+    startMaybeWithPidFile procSpec
+                          (pidFile the_spec)
+                          (io . onValidHandleAction the_spec lHandle)
+                          (io . onPidErrorAction the_spec lHandle)
 
     where
         cmdSplit fullcmd = (head parts, tail parts)
