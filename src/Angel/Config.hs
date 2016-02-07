@@ -4,6 +4,7 @@
 module Angel.Config ( monitorConfig
                     , modifyProg
                     , expandByCount
+                    , loadInitialUserFromConfig
                     -- for testing
                     , processConfig) where
 
@@ -18,8 +19,9 @@ import Control.Concurrent.STM ( STM
                               , writeTVar
                               , readTVar
                               , atomically )
-import Data.Configurator ( load
+import qualified Data.Configurator as C ( load
                          , getMap
+                         , lookup
                          , Worth(Required) )
 import Data.Configurator.Types ( Value(Number, String, Bool)
                                , Name )
@@ -32,8 +34,7 @@ import Data.Maybe ( isNothing
 import Data.Monoid ( (<>) )
 import qualified Data.Text as T
 import Angel.Job ( syncSupervisors )
-import Angel.Data ( Program( user
-                           , exec
+import Angel.Data ( Program( exec
                            , delay
                            , stdout
                            , stderr
@@ -96,9 +97,6 @@ modifyProg :: Program -> String -> Value -> Program
 modifyProg prog "exec" (String s) = prog {exec = Just (T.unpack s)}
 modifyProg _ "exec" _ = error "wrong type for field 'exec'; string required"
 
-modifyProg prog "user" (String s) = prog{user = Just (T.unpack s)}
-modifyProg _ "user" _ = error "wrong type for field 'user'; string required"
-
 modifyProg prog "delay" (Number n) | n < 0     = error "delay value must be >= 0"
                                    | otherwise = prog{delay = Just $ round n}
 modifyProg _ "delay" _ = error "wrong type for field 'delay'; integer"
@@ -130,17 +128,20 @@ modifyProg _ "termgrace" _ = error "wrong type for field 'termgrace'; number or 
 
 modifyProg prog _ _ = prog
 
+loadInitialUserFromConfig :: FilePath -> IO (Maybe String)
+loadInitialUserFromConfig configPath = do
+    C.load [C.Required "example.conf"] >>= flip C.lookup "user"
 
 -- |invoke the parser to process the file at configPath
 -- |produce a SpecKey
 processConfig :: String -> IO (Either String SpecKey)
 processConfig configPath = do
-    mconf <- try $ process =<< load [Required configPath]
+    mconf <- try $ process =<< C.load [C.Required configPath]
 
     case mconf of
         Right config -> return $ Right config
         Left (e :: SomeException) -> return $ Left $ show e
-  where process = getMap                  >=>
+  where process = C.getMap                >=>
                   return . expandByCount  >=>
                   return . buildConfigMap >=>
                   expandPaths             >=>

@@ -86,6 +86,7 @@ data Verbosity = V0
 
 data Options = Options {
       configFile :: FilePath
+    , userargument :: Maybe String
     , verbosity  :: Verbosity
     }
 

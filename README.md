@@ -96,12 +96,15 @@ file.
     angel --help
     angel - Process management and supervision daemon
 
-    Usage: angel CONFIG_FILE [-v VERBOSITY]
+    Usage: angel CONFIG_FILE [-u USER] [-v VERBOSITY]
 
     Available options:
       -h,--help                Show this help text
+      -u USER                  Execute as this user
       -v VERBOSITY             Verbosity from 0-2 (default: 2)
 
+If the -u option is specified on the command line, it will take precedence over
+any configuration command in the configuration file.
 
 `angel`'s configuration system is based on Bryan O'Sullivan's `configurator`
 package.  A full description of the format can be found here:
@@ -109,6 +112,9 @@ package.  A full description of the format can be found here:
 http://hackage.haskell.org/packages/archive/configurator/0.1.0.0/doc/html/Data-Configurator.html
 
 A basic configuration file might look like this:
+
+    #user is optional with a default of the current user
+    user = "alice"
 
     watch-date {
         exec = "watch date"
@@ -134,6 +140,18 @@ A basic configuration file might look like this:
         termgrace = 10
     }
 
+By adding a "user" configuration command at the top level of the
+configuration it is possible to specify the user Angel will be executed as.
+Each of the programs listed in the specification file will also be executed
+as this user. This option is only read on first start up, and is not re-read
+if the configuration file changes.
+
+The user configuration command is ignored if a user is specified on the
+command line via the -u option.
+
+Angel will run as the invoking user if no user configuration command
+is specified.
+
 Each program that should be supervised starts a `program-id` block:
 
     watch-date {
@@ -141,8 +159,6 @@ Each program that should be supervised starts a `program-id` block:
 Then, a series of corresponding configuration commands follow:
 
  * `exec` is the exact command line to run (required)
- * `user` is the user the program will run as (optional, defaults to the
-   user angel is launched as)
  * `stdout` is a path to a file where the program's standard output
     should be appended (optional, defaults to /dev/null)
  * `stderr` is a path to a file where the program's standard error

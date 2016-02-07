@@ -29,10 +29,14 @@ import System.IO (hSetBuffering,
                   stdout,
                   stderr)
 
+import qualified System.Posix.User as U (setUserID,
+                          getUserEntryForName,
+                          UserEntry(userID) )
+
 import qualified Data.Map as M
 
 import Angel.Log (logger)
-import Angel.Config (monitorConfig)
+import Angel.Config (monitorConfig, loadInitialUserFromConfig)
 import Angel.Data (GroupConfig(GroupConfig),
                    Options(..),
                    spec,
@@ -59,17 +63,24 @@ opts = info (helper <*> opts')
   where
     opts' = Options
             <$> strArgument (metavar "CONFIG_FILE")
+            <*> option readUserOpt (short 'u' <>
+                                 value Nothing <>
+                                 metavar "USER" <>
+                                 help "Execute as user")
             <*> option readVOpt (short 'v' <>
                                  value V2 <>
                                  showDefaultWith vOptAsNumber <>
                                  metavar "VERBOSITY" <>
                                  help "Verbosity from 0-2")
 
+
 vOptAsNumber :: Verbosity -> String
 vOptAsNumber V2 = "2"
 vOptAsNumber V1 = "1"
 vOptAsNumber V0 = "0"
 
+readUserOpt :: ReadM (Maybe String)
+readUserOpt = eitherReader $ (return . Just)
 
 readVOpt :: ReadM Verbosity
 readVOpt = eitherReader $ \s ->
@@ -82,6 +93,27 @@ readVOpt = eitherReader $ \s ->
 runWithOpts :: Options -> IO ()
 runWithOpts os = runAngelM os runWithConfigPath
 
+switchUser :: String -> IO ()
+switchUser name = do
+    userEntry <- U.getUserEntryForName name
+    U.setUserID $ U.userID userEntry
+
+switchRunningUser :: AngelM ()
+switchRunningUser = do
+    username <- asks userargument
+
+    case username of
+        Just user -> do
+            logger "main" V2 $ "Running as user: " ++ user
+            liftIO $ switchUser user
+        Nothing -> do
+            configPath <- asks configFile
+            userFromConfig <- liftIO $ loadInitialUserFromConfig configPath
+            case userFromConfig of
+                Just configUser -> do
+                    logger "main" V2 $ "Running as user: " ++ configUser
+                    liftIO $ switchUser configUser
+                Nothing -> return ()
 
 runWithConfigPath :: AngelM ()
 runWithConfigPath = do
@@ -90,6 +122,9 @@ runWithConfigPath = do
     liftIO $ hSetBuffering stderr LineBuffering
     let logger' = logger "main"
     logger' V2 "Angel started"
+
+    -- Switch to the specified user if one has been chosen
+    switchRunningUser
 
     logger' V2 $ "Using config file: " ++ configPath
 
