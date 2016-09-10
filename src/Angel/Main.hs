@@ -13,6 +13,7 @@ import Control.Concurrent.STM (TVar,
                                readTVar,
                                newTVarIO)
 import Control.Monad (forever)
+import Data.Monoid ( (<>) )
 import Control.Monad.Reader
 import Options.Applicative
 import System.Environment (getArgs)
