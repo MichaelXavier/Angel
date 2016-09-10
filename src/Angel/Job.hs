@@ -23,8 +23,6 @@ import System.Process ( createProcess
                       , cwd
                       , env
                       , StdStream(UseHandle, CreatePipe) )
-import qualified System.Posix.Process as P ( forkProcess
-                            , getProcessStatus )
 import qualified System.Posix.User as U (setUserID,
                           getUserEntryForName,
                           UserEntry(userID) )
@@ -98,7 +96,7 @@ supervise sharedGroupConfig id' = do
                 logProcessSpawn Nothing = return ()
                 logProcessSpawn (Just (cmd, args)) = do
                     logger' V1 $ "Spawning process: " ++ cmd ++ " with env " ++ ((show . D.env) my_spec) ++ (maybe "" (" as user: " ++) (D.user my_spec))
-                    superviseSpawner my_spec cfg cmd args sharedGroupConfig id' onValidHandle (\a b c -> onPidError a b c)
+                    superviseSpawner my_spec cfg cmd args sharedGroupConfig id' onValidHandle onPidError
 
             logProcessSpawn $ fmap (cmdSplit) (exec my_spec)
 
@@ -153,7 +151,6 @@ superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction
     opts <- ask
     let io = runAngelM opts
     liftIO $ do
-      angelPid <- P.forkProcess $ do
         maybe (return ()) switchUser (D.user the_spec)
         -- start the logger process or if non is configured
         -- use the files specified in the configuration
@@ -171,9 +168,6 @@ superviseSpawner the_spec cfg cmd args sharedGroupConfig id' onValidHandleAction
                               (pidFile the_spec)
                               (io . onValidHandleAction the_spec lHandle)
                               (io . onPidErrorAction the_spec lHandle)
-
-      P.getProcessStatus True True angelPid
-      return ()
 
     where
         cmdSplit fullcmd = (head parts, tail parts)
