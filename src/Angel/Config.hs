@@ -130,7 +130,7 @@ modifyProg prog _ _ = prog
 
 loadInitialUserFromConfig :: FilePath -> IO (Maybe String)
 loadInitialUserFromConfig configPath = do
-    C.load [C.Required "example.conf"] >>= flip C.lookup "user"
+    C.load [C.Required configPath] >>= flip C.lookup "user"
 
 -- |invoke the parser to process the file at configPath
 -- |produce a SpecKey
