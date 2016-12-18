@@ -48,7 +48,7 @@ Executable angel
   Build-depends: old-locale
   Build-depends: text>=0.11
   Build-depends: transformers
-  Build-depends: optparse-applicative
+  Build-depends: optparse-applicative >= 0.12
 
 
   Other-modules: Angel.Files,
