@@ -8,6 +8,15 @@ is similar to djb's `daemontools` or the Ruby project `god`.
 It's goals are to keep a set of services running, and to facilitate
 the easy configuration and restart of those services.
 
+
+Maintainers Wanted
+------------------
+I do not actively use Angel anymore and don't have much time to work
+on it. If you are an invested user in Angel, you shold have a say in
+the direction of the project. Let me know in a Github issue and I will
+happily add you to the project.
+
+
 Motivation
 ----------
 
