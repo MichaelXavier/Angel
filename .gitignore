@@ -6,3 +6,4 @@ test/test_jobs/CompliantJob
 test/test_jobs/StubbornJob
 .cabal-sandbox
 cabal.sandbox.config
+.stack-work/
