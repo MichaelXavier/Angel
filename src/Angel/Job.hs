@@ -33,7 +33,7 @@ import Control.Concurrent.STM ( TVar
                               , readTVar
                               , atomically )
 import Control.Monad.IO.Class (liftIO)
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import Angel.Log ( logger
                  , programLogger )
 import Angel.Data ( Program( delay
@@ -134,7 +134,7 @@ supervise sharedGroupConfig id' = do
                                   , rsLogHandle = mlpid
                                   }
             writeTVar sharedGroupConfig wcfg{
-              running=M.insertWith' const id' rstate (running wcfg)
+              running=M.insertWith const id' rstate (running wcfg)
             }
 
 superviseSpawner
