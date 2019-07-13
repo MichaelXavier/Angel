@@ -2,7 +2,9 @@ module Angel.Log ( cleanCalendar
                  , logger
                  , programLogger ) where
 
-import Control.Monad.Reader
+import Control.Monad (when)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (asks)
 import Data.Time.LocalTime (ZonedTime,
                             getZonedTime)
 import Data.Time.Format ( formatTime
