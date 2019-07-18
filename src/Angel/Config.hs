@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.Config ( monitorConfig
                     , modifyProg
@@ -13,7 +14,7 @@ import Control.Exception ( try
 import qualified Data.Map as M
 import Control.Monad ( when
                      , (>=>) )
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.STM ( STM
                               , TVar
                               , writeTVar
@@ -51,6 +52,7 @@ import Angel.Data ( Program( exec
                   , spec
                   , defaultProgram )
 import Angel.Log ( logger )
+import Angel.Prelude
 import Angel.Util ( waitForWake
                   , nnull
                   , expandPath )

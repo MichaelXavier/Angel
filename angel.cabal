@@ -18,7 +18,7 @@ Bug-Reports:         http://github.com/MichaelXavier/Angel/issues
 
 Stability:           Stable
 Category:            System
-Build-type:          Custom
+Build-type:          Simple
 
 Extra-source-files:  README.md
                      changelog.md
@@ -55,14 +55,15 @@ Executable angel
                  Angel.Config,
                  Angel.Data,
                  Angel.Job,
-                 Angel.Process
+                 Angel.Prelude,
+                 Angel.Process,
                  Angel.Log,
                  Angel.Util,
                  Angel.PidFile
 
   Extensions: OverloadedStrings,ScopedTypeVariables,BangPatterns,ViewPatterns
 
-  Ghc-Options: -threaded -fwarn-missing-import-lists
+  Ghc-Options: -threaded
 
 test-suite spec
   Type:           exitcode-stdio-1.0

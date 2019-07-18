@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Angel.Data ( GroupConfig(..)
                   , SpecKey
                   , RunKey
@@ -19,12 +20,14 @@ module Angel.Data ( GroupConfig(..)
                   ) where
 
 import qualified Data.Map as M
-import System.Process ( ProcessHandle )
-import Control.Applicative
-import Control.Monad.IO.Class
-import Control.Monad.Reader
+import System.Process (ProcessHandle)
+import Control.Applicative (Applicative)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Reader (MonadReader, ReaderT, runReaderT)
 import Control.Concurrent.STM.TChan (TChan)
 import System.IO (Handle)
+
+import Angel.Prelude
 
 -- |the whole shared state of the program; spec is what _should_
 -- |be running, while running is what actually _is_ running_ currently

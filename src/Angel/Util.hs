@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 -- |various utility functions
 module Angel.Util ( sleepSecs
                   , waitForWake
@@ -6,6 +7,7 @@ module Angel.Util ( sleepSecs
                   , strip
                   , nnull ) where
 
+import Angel.Prelude
 import Control.Concurrent.STM (atomically
                               , retry
                               , TVar

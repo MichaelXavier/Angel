@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
@@ -15,7 +16,8 @@ import Control.Concurrent.STM (TVar,
 import Control.Monad (forever)
 import Data.Monoid ( (<>) )
 import Control.Monad.Reader
-import Options.Applicative
+import Options.Applicative (ParserInfo, ReadM)
+import qualified Options.Applicative as O
 import System.Environment (getArgs)
 import System.Exit (exitFailure,
                     exitSuccess)
@@ -46,6 +48,7 @@ import Angel.Data (GroupConfig(GroupConfig),
                    runAngelM)
 import Angel.Job (pollStale,
                   syncSupervisors)
+import Angel.Prelude
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
 -- |to make the configuration monitor loop cycle/reload
@@ -56,23 +59,23 @@ handleExit :: MVar Bool -> IO ()
 handleExit mv = putMVar mv True
 
 main :: IO ()
-main = runWithOpts =<< execParser opts
+main = runWithOpts =<< O.execParser opts
 
 opts :: ParserInfo Options
-opts = info (helper <*> opts')
-       (fullDesc <> header "angel - Process management and supervision daemon")
+opts = O.info (O.helper <*> opts')
+       (O.fullDesc <> O.header "angel - Process management and supervision daemon")
   where
     opts' = Options
-            <$> strArgument (metavar "CONFIG_FILE")
-            <*> option readUserOpt (short 'u' <>
-                                 value Nothing <>
-                                 metavar "USER" <>
-                                 help "Execute as user")
-            <*> option readVOpt (short 'v' <>
-                                 value V2 <>
-                                 showDefaultWith vOptAsNumber <>
-                                 metavar "VERBOSITY" <>
-                                 help "Verbosity from 0-2")
+            <$> O.strArgument (O.metavar "CONFIG_FILE")
+            <*> O.option readUserOpt (O.short 'u' <>
+                                 O.value Nothing <>
+                                 O.metavar "USER" <>
+                                 O.help "Execute as user")
+            <*> O.option readVOpt (O.short 'v' <>
+                                 O.value V2 <>
+                                 O.showDefaultWith vOptAsNumber <>
+                                 O.metavar "VERBOSITY" <>
+                                 O.help "Verbosity from 0-2")
 
 
 vOptAsNumber :: Verbosity -> String
@@ -81,10 +84,10 @@ vOptAsNumber V1 = "1"
 vOptAsNumber V0 = "0"
 
 readUserOpt :: ReadM (Maybe String)
-readUserOpt = eitherReader $ (return . Just)
+readUserOpt = O.eitherReader $ (return . Just)
 
 readVOpt :: ReadM Verbosity
-readVOpt = eitherReader $ \s ->
+readVOpt = O.eitherReader $ \s ->
     case s of
       "0" -> return V0
       "1" -> return V1
