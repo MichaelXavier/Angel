@@ -55,7 +55,8 @@ Executable angel
                  Angel.Config,
                  Angel.Data,
                  Angel.Job,
-                 Angel.Process
+                 Angel.Prelude,
+                 Angel.Process,
                  Angel.Log,
                  Angel.Util,
                  Angel.PidFile

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module Angel.Log ( cleanCalendar
                  , logger
                  , programLogger ) where
@@ -12,6 +13,7 @@ import Data.Time.Format ( formatTime
 
 import Text.Printf (printf)
 import Angel.Data
+import Angel.Prelude
 
 -- |provide a clean, ISO-ish format for timestamps in logs
 cleanCalendar :: ZonedTime -> String

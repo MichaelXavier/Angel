@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Angel.Job ( syncSupervisors
                  , killProcess -- for testing
                  , pollStale ) where
@@ -58,6 +59,7 @@ import Angel.Data ( Program( delay
                   , defaultDelay
                   , defaultStdout
                   , defaultStderr )
+import Angel.Prelude
 import Angel.Process ( isProcessHandleDead
                      , softKillProcessHandle
                      , hardKillProcessHandle )

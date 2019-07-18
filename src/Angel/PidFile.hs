@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module Angel.PidFile ( startMaybeWithPidFile
                      , startWithPidFile
                      , clearPIDFile) where
@@ -17,6 +18,8 @@ import System.Process.Internals ( PHANDLE
                                 )
 import System.Posix.Files ( removeLink
                           , fileExist)
+
+import Angel.Prelude
 
 startMaybeWithPidFile :: CreateProcess
                       -> Maybe FilePath

@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
@@ -47,6 +48,7 @@ import Angel.Data (GroupConfig(GroupConfig),
                    runAngelM)
 import Angel.Job (pollStale,
                   syncSupervisors)
+import Angel.Prelude
 
 -- |Signal handler: when a HUP is trapped, write to the wakeSig Tvar
 -- |to make the configuration monitor loop cycle/reload

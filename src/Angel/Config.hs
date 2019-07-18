@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Angel.Config ( monitorConfig
                     , modifyProg
@@ -51,6 +52,7 @@ import Angel.Data ( Program( exec
                   , spec
                   , defaultProgram )
 import Angel.Log ( logger )
+import Angel.Prelude
 import Angel.Util ( waitForWake
                   , nnull
                   , expandPath )

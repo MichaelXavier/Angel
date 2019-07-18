@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Angel.Process ( getProcessHandleStatus
                      , isProcessHandleDead
@@ -5,6 +6,7 @@ module Angel.Process ( getProcessHandleStatus
                      , hardKillProcessHandle
                      , signalProcessHandle ) where
 
+import Angel.Prelude
 import Control.Exception (catchJust)
 import Control.Monad ( join
                      , void )
